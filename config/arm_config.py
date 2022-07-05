@@ -3,7 +3,6 @@
 # Set up for T-motor R60 KV115:
 
 import odrive
-from odrive.enums import *
 
 odrv0 = odrive.find_any()
 
@@ -23,11 +22,15 @@ odrv0.axis0.motor.config.motor_type = MOTOR_TYPE_HIGH_CURRENT
 # Encoder Configuration:
 odrv0.axis0.encoder.config.abs_spi_cs_gpio_pin = 4
 odrv0.axis1.encoder.config.abs_spi_cs_gpio_pin = 3
-odrv0.axis0.encoder.config.mode = 257 # ENCODER_MODE_SPI_ABS_AMS
+odrv0.axis0.encoder.config.mode = ENCODER_MODE_SPI_ABS_AMS
 odrv0.axis0.encoder.config.cpr = 2**14
 
 # Controller Configuration:
 odrv0.axis0.controller.config.vel_limit = 2.0  # [turn/s]
+
+# I2C Configuration
+odrv0.config.enable_can_a = False
+odrv0.config.enable_i2c_a = True
 
 # Tuning Gains:
 odrv0.axis0.controller.config.pos_gain = 150.0  # [(turn/s) / turn]
