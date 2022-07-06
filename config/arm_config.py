@@ -3,6 +3,7 @@
 # Set up for T-motor R60 KV115:
 
 import odrive
+from odrive.enums import *
 
 odrv0 = odrive.find_any()
 
@@ -39,7 +40,13 @@ odrv0.axis0.controller.config.vel_integrator_gain = 0.15  # [Nm/((turn/s) * s)]
 
 # Save configuration:
 odrv0.axis0.requested_state = AXIS_STATE_IDLE
-odrv0.save_configuration()
+try:
+    odrv0.save_configuration()
+except:
+    print("Odrive is rebooting..")
+finally:
+    odrv0 = odrive.find_any()
+
 
 # Motor Calibration:
 odrv0.axis0.requested_state = AXIS_STATE_FULL_CALIBRATION_SEQUENCE
@@ -53,7 +60,6 @@ odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
 # Save Motor and Encoder Offset Calibration:
 odrv0.axis0.encoder.config.pre_calibrated = True
 odrv0.axis0.motor.config.pre_calibrated = True
-odrv0.axis0.encoder.config.pre_calibrated
 
 # Error Handling:
-odrv0.axis0.controller.input_posodrv0.clear_errors()
+odrv0.clear_errors()
