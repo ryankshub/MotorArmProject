@@ -35,3 +35,31 @@ GYRO_ZOUT_L = 0x48  # LSBs of Gyro z
 
 # ID Register
 WHO_AM_I = 0x75     # Contants I2C addr; reg val should be 0x68
+
+# Constants
+SAMPLE_DIV = 0x07 # Divide Sample Rate by 8; 
+ACCEL_CONV = 6.103515625e-05 # For 2+-, 16384 LSB/g
+GYRO_CONV = 0.06097560975609757 # for 2000 deg/s, 16.4 LSB/deg/s
+
+# Establish I2C Connection
+# Use smBus2 for this
+
+# Configure Device
+def init_device():
+    # Wake up device, disable temp sensor, and set Gyro Z PLL for clock reference
+    # Write_I2C(IMU_ADDR, PWR_MGMT_1, 0x0B) 
+    
+    # Config Accel with +-2g precision
+    # Write_I2C(IMU_ADDR, ACCEL_CONFIG, 0x00)
+
+    # Config Gryo with 2000 deg/s
+    # Write_I2C(IMU_ADDR, GYRO_CONFIG, 0x18)
+
+    # Config Sample Rate for both to be 1kHz
+    # Write_I2C(IMU_ADDR, SMPRT_DIV, SAMPLE_DIV)
+    pass
+
+def read_data():
+    # Burst Read Data
+    pass
+
