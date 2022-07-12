@@ -22,15 +22,18 @@ void init_device(void) {
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
     // Set Accel with +- 2g precision
-    write_buf = {ACCEL_CONFIG, 0x00};
+    write_buf[0] = ACCEL_CONFIG;
+    write_buf[1] = 0x00;
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
     // Set Gyro with 2000 deg/s
-    write_buf = {GYRO_CONFIG, 0x18};
+    write_buf[0] = GYRO_CONFIG;
+    write_buf[1] = 0x18;
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
     // Config Sample Rate to both to be 1kHz
-    write_buf = {SMPRT_DIV, SAMPLE_DIV};
+    write_buf[0] = SMPRT_DIV;
+    write_buf[1] = SAMPLE_DIV;
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
 }

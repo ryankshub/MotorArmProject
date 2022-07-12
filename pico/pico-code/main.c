@@ -23,6 +23,6 @@ int main() {
 
     while(true){
         read_data(accel, gyro);
-        printf("%f, %f, %f, %f, %f, %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
+        printf("%f %f %f %f %f %f\n", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
     }
 }

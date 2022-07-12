@@ -17,5 +17,6 @@ target_link_libraries(imu_inf pico_stdlib hardware_i2c)
 target_include_directories(imu_inf PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 pico_enable_stdio_usb(imu_inf 1)
+pico_enable_stdio_uart(imu_inf 0)
 
 pico_add_extra_outputs(imu_inf)
