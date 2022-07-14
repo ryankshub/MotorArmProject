@@ -25,10 +25,13 @@ def parse_mt(filepath):
     # Output data rate is 100Hz or 0.01s between samples
     start_sample = df['PacketCounter'][0]
     df['Time_s'] = [0.01 * (df['PacketCounter'][i] - start_sample) for i in range(len(df['PacketCounter']))]
+    df['AccM'] = [np.sqrt(np.power(df['Acc_X'][i], 2) + np.power(df['Acc_Y'][i], 2) + np.power(df['Acc_Z'][i], 2))
+                    for i in range(len(df['Acc_X']))]
     rtn_dic = {'Time_s': df['Time_s'].values,
                'AccX': df['Acc_X'].values,
                'AccY': df['Acc_Y'].values,
                'AccZ': df['Acc_Z'].values,
+               'AccM': df['AccM'].values,
                'FreeAccX': df['FreeAcc_X'].values,
                'FreeAccY': df['FreeAcc_Y'].values,
                'FreeAccZ': df['FreeAcc_Z'].values}
@@ -182,7 +185,7 @@ def plot_mt_data(filepath, title, key, psd_plot=True):
     plt.show()
 
 
-def apply_filter(data, filter_order, filter_type, cutoff_freq):
+def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
     """
     Apply butterworth filter of certain type
 
@@ -195,5 +198,5 @@ def apply_filter(data, filter_order, filter_type, cutoff_freq):
             and 'highpass' should be a scalar; for 'bandpass' or 'bandstop', the 
             frequency should be a two-elem list
     """
-    b, a = signal.butter(filter_order, cutoff_freq, filter_type)
+    b, a = signal.butter(filter_order, cutoff_freq, filter_type, fs=fs)
     return signal.lfilter(b, a, data)
