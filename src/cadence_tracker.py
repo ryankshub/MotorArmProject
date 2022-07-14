@@ -39,7 +39,7 @@ class CadenceTracker():
         """
         Clears tracker of acceleration data
         """
-        self._data = np.array([], dtype=float64)
+        self._data = np.array([], dtype=np.float64)
 
 
     def add_measurement(self, accel_val):
@@ -51,7 +51,7 @@ class CadenceTracker():
             number accel_val - latest acceleration measurement (m/s)
         """
         self._data = np.append(self._data, accel_val)
-        if (self._data > self._size):
+        if (len(self._data) > self._size):
             self._data = np.delete(self._data, 0)
 
 
@@ -64,8 +64,8 @@ class CadenceTracker():
         """
 
         self._data = np.append(self._data, accel_vals)
-        if (self._data > self._size):
-            self._data = np.delete(self._data, np.s_[0:len(self._data) - self.size])
+        if (len(self._data) > self._size):
+            self._data = np.delete(self._data, np.s_[0:len(self._data) - self._size])
 
     
     def find_step(self, idx):
@@ -79,7 +79,7 @@ class CadenceTracker():
         """
         Return the estimated cadence the arm should take in rads 
         """
-        return self._target_cadence 
+        return self._target_cadence_rads
 
 
     
