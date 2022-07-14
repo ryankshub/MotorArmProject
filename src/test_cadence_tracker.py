@@ -2,6 +2,7 @@
 
 # Project Import
 from cadence_tracker import CadenceTracker
+import mt_parser
 
 # Python import
 
@@ -25,3 +26,6 @@ CT_50.add_datum(test)
 print(f"CT_50 data: {CT_50._data}")
 print(f"CT_50 cadence: {CT_50.calculate_cadence()}")
 print(f"CT_100 cadence: {CT_100.calculate_cadence()}")
+
+filepath = '../data/cadence_test_data/MT_012006A8-2022-07-12-16h40_000_36-000.txt'
+mt_parser.plot_mt_data(filepath, "TEST")
