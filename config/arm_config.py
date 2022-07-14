@@ -1,5 +1,11 @@
 #! /usr/bin/env python3
 
+####
+# This file is based off configuration from Yael Ben Shalom's Motorized-Prosthetic-Arm
+# Link here: https://github.com/YaelBenShalom/Motorized-Prosthetic-Arm/blob/master/setup.py
+# Modified: 07-13-2022
+####
+
 # Set up for T-motor R60 KV115:
 
 import odrive

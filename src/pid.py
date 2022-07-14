@@ -1,3 +1,8 @@
+####
+# This file is originally from Yael Ben Shalom's Motorized-Prosthetic-Arm
+# Link here: https://github.com/YaelBenShalom/Motorized-Prosthetic-Arm/blob/master/motor_control/pid.py
+#
+####
 import time
 
 

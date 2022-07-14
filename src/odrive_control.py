@@ -1,4 +1,10 @@
 #! /usr/bin/env python3
+
+####
+# This file is originally from Yael Ben Shalom's Motorized-Prosthetic-Arm
+# Link here: https://github.com/YaelBenShalom/Motorized-Prosthetic-Arm/blob/master/motor_control/odrive_control.py
+#
+####
 from __future__ import print_function
 
 import argparse
