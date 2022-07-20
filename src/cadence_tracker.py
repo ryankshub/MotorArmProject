@@ -1,7 +1,10 @@
 #! /usr/bin/env python3
+"""
+File for Cadence Tracker Class
+"""
 
 # Project Import
-import mt_parser
+
 # Python Import
 
 # 3rd-party Import
@@ -18,8 +21,8 @@ class CadenceTracker():
         CadenceTracker Constructer
 
         Args:
-            number freq_Hz - frequency of the incoming data; default 100Hz
-            int time_window_s - Duration of the data consider; default 2s
+            int freq_Hz - frequency of the incoming data; default 100Hz
+            float time_window_s - Duration of the data consider; default 2s
                 Must be at least 1s
             list data - Initial dataset; default None
             string method - method for how cadence is calculated
