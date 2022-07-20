@@ -1,30 +1,40 @@
 #! /usr/bin/env python3
 
 # Project Import
-
+import mt_parser
 # Python Import
 
 # 3rd-party Import
 import numpy as np
+from scipy import signal
 
 class CadenceTracker():
     """
     Calculates the desired cadence of the arm based on the acceleration 
     readings from the IMU 
     """
-    def __init__(self, freq_Hz=100, time_window_ms=100, data=None):
+    def __init__(self, freq_Hz=100, time_window_s=2, data=None, method='direct'):
         """
         CadenceTracker Constructer
 
         Args:
             number freq_Hz - frequency of the incoming data; default 100Hz
-            int time_window_ms - Duration of the data consider; default 100ms
+            int time_window_s - Duration of the data consider; default 2s
+                Must be at least 1s
             list data - Initial dataset; default None
+            string method - method for how cadence is calculated
+                'direct' - uses internal step counter for cadence
+                'indirect' - uses step estimator for cadence
+                if an unsupported string is provide, 'direct' is used
         """
         # Calculate size of data array based on time window and freq
         self._freq_Hz = freq_Hz
-        self._time_window_ms = time_window_ms
-        self._size = int(np.ceil(time_window_ms / (1000 / self._freq_Hz)))
+        self._time_window_s = time_window_s
+        if self._time_window_s < 1:
+            print("WARNING: Time Window too small; adjusting to 1 second")
+            self._time_window_s = 1.0
+        self._size = int(np.ceil(time_window_s / (1 / self._freq_Hz)))
+        self._min_size = int(np.ceil(self._size/time_window_s))
         self._data = np.array([], dtype=np.float64)
         # Input initial data, only keep 'size' latest values
         if(data):
@@ -32,8 +42,16 @@ class CadenceTracker():
         if(len(self._data) > self._size):
             self._data = np.delete(self._data, np.s_[0:len(self._data)-self._size])
         # Set initial cadence
-        self._target_cadence_rads = 0.0
-
+        self._target_cadence_degs = 0.0
+        # Max degree arc TODO: Calculate this as it may change based on speed
+        self._DEGREES_PER_STEP = 20.0
+        self._method = 'direct'
+        if not (method == 'direct' or method == 'indirect'):
+            print("WARNING: Unsupported method provided; using direct")
+        else:
+            self._method = method
+        # Set up internal filter:
+        self._FILTER_B, self._FILTER_A = signal.butter(3, 2, 'lowpass', fs=self._freq_Hz)
 
     def clear_data(self):
         """
@@ -65,21 +83,61 @@ class CadenceTracker():
 
         self._data = np.append(self._data, accel_vals)
         if (len(self._data) > self._size):
+            print("LOST DATA")
             self._data = np.delete(self._data, np.s_[0:len(self._data) - self._size])
 
-    
-    def find_step(self, idx):
+
+    def count_steps(self):
         """
-        Search for step in data starting from idx
+        Uses low-pass filter and peak counting to get 
+        number of steps in time window
+
+        Rtn:
+        int step_count: number of steps detected in data
         """
-        pass
+        filtered_data = signal.lfilter(self._FILTER_B, self._FILTER_A, self._data)
+        #filtered_data = mt_parser.apply_filter(self._data, self._freq_Hz, 3, 'lowpass', 2)
+        step_count = len(signal.find_peaks(filtered_data)[0])
+        return step_count
+        
+
+    def estimate_steps(self):
+        """
+        Detemines step count estimate by looking at
+        dominate freq. 
+
+        Rtn:
+        int step_count: number of steps estimated in data
+        """
+        nPts = len(self._data)
+        f, Pxx = signal.welch(self._data, self._freq_Hz, nperseg=nPts)
+        max_idx = np.argmax(Pxx)
+        max_freq = f[max_idx]
+        return int(np.ceil(self._time_window_s / (1/max_freq)))
 
 
     def calculate_cadence(self):
         """
-        Return the estimated cadence the arm should take in rads 
+        Return the estimated cadence the arm should take in deg/s
         """
-        return self._target_cadence_rads
+        # We need at least a second of data for accurate cadence count
+        if (len(self._data) < self._min_size):
+            return 0.0
+        
+        # Pick which method to get step counts
+        step_count = 0
+        if (self._method == 'direct'):
+            step_count = self.count_steps()
+        elif (self._method == 'indirect'):
+            step_count = self.estimate_steps()
+        else:
+            #TODO: Throw exception?
+            print("ERROR: UNSUPPORTED STEP COUNT METHOD FOUND")
+            step_count = 0
+        # Convert step count to cadence
+        arc_length = self._DEGREES_PER_STEP * step_count
+        self._target_cadence_degs = arc_length / self._time_window_s
+        return self._target_cadence_degs
 
 
     
