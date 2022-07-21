@@ -16,7 +16,7 @@ from odrive.enums import *
 if __name__ == "__main__":
     operation_freq = 100
     # Create Cadence Tracker
-    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=3, method='direct')
+    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=4, method='indirect')
 
     # Create Imu_interface
     imu_itf = ImuInterface(read_rate_Hz=operation_freq)

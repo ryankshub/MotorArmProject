@@ -166,11 +166,11 @@ print(f"1.4: {stepsM_12_1_4}, 2.0: {stepsM_12_2_0}, 2.5: {stepsM_12_2_5}, 3.0: {
 
 # Test Cadence Tracker:
 CT_2_direct = CadenceTracker(freq_Hz = 100, time_window_s = 2)
-CT_3_direct = CadenceTracker(freq_Hz = 100, time_window_s = 3.5)
+CT_3_direct = CadenceTracker(freq_Hz = 100, time_window_s = 4)
 CT_5_direct = CadenceTracker(freq_Hz = 100, time_window_s= 5)
 
 CT_2_indirect = CadenceTracker(freq_Hz = 100, time_window_s=2, method='indirect')
-CT_3_indirect = CadenceTracker(freq_Hz = 100, time_window_s=3.5, method='indirect')
+CT_3_indirect = CadenceTracker(freq_Hz = 100, time_window_s=4, method='indirect')
 CT_5_indirect = CadenceTracker(freq_Hz = 100, time_window_s=5, method='indirect')
 
 # Plotting data
@@ -190,31 +190,62 @@ for idx in range(len(data_dict10['Time_s'])):
     CT_2_direct.add_measurement(step_data[idx])
     CT_2_Ddata.append(CT_2_direct.calculate_cadence())
 
-    # CT_3_direct.add_measurement(data_dict10['AccY'][idx])
-    # CT_3_Ddata.append(CT_3_direct.calculate_cadence())
+    CT_3_direct.add_measurement(step_data[idx])
+    CT_3_Ddata.append(CT_3_direct.calculate_cadence())
 
-    # CT_5_direct.add_measurement(data_dict10['AccY'][idx])
-    # CT_5_Ddata.append(CT_5_direct.calculate_cadence())
+    CT_5_direct.add_measurement(step_data[idx])
+    CT_5_Ddata.append(CT_5_direct.calculate_cadence())
 
     CT_2_indirect.add_measurement(step_data[idx])
     CT_2_Idata.append(CT_2_indirect.calculate_cadence())
 
-    # CT_3_indirect.add_measurement(data_dict10['AccY'][idx])
-    # CT_3_Idata.append(CT_3_indirect.calculate_cadence())
+    CT_3_indirect.add_measurement(step_data[idx])
+    CT_3_Idata.append(CT_3_indirect.calculate_cadence())
 
-    # CT_5_indirect.add_measurement(data_dict10['AccY'][idx])
-    # CT_5_Idata.append(CT_5_indirect.calculate_cadence())
+    CT_5_indirect.add_measurement(step_data[idx])
+    CT_5_Idata.append(CT_5_indirect.calculate_cadence())
 
 fig, axs = plt.subplots(2,1)
-fig.suptitle("TEST")
+fig.suptitle("Comparsion of Cadence tracking with 2 second time window")
 axs[0].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
 axs[0].plot(data_dict10['Time_s'], CT_2_Ddata, color="tab:blue", label="Direct Cadence")
 axs[0].legend()
 axs[0].set_ylabel("Cadence (deg/s)")
+axs[0].set_ylim(0, 50)
 axs[1].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
 axs[1].plot(data_dict10['Time_s'], CT_2_Idata, color="tab:orange", label="Indirect Cadence")
 axs[1].legend()
 axs[1].set_xlabel("Time (s)")
+axs[1].set_ylabel("Cadence (deg/s)")
+axs[1].set_ylim(0, 50)
+
+fig3, axs3 = plt.subplots(2,1)
+fig3.suptitle("Comparsion of Cadence tracking with 3.5 second time window")
+axs3[0].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
+axs3[0].plot(data_dict10['Time_s'], CT_3_Ddata, color="tab:blue", label="Direct Cadence")
+axs3[0].legend()
+axs3[0].set_ylabel("Cadence (deg/s)")
+axs3[0].set_ylim(0, 50)
+axs3[1].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
+axs3[1].plot(data_dict10['Time_s'], CT_3_Idata, color="tab:orange", label="Indirect Cadence")
+axs3[1].legend()
+axs3[1].set_xlabel("Time (s)")
+axs3[1].set_ylabel("Cadence (deg/s)")
+axs3[1].set_ylim(0, 50)
+
+fig5, axs5 = plt.subplots(2,1)
+fig5.suptitle("Comparsion of Cadence tracking with 5 second time window")
+axs5[0].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
+axs5[0].plot(data_dict10['Time_s'], CT_5_Ddata, color="tab:blue", label="Direct Cadence")
+axs5[0].legend()
+axs5[0].set_ylabel("Cadence (deg/s)")
+axs5[0].set_ylim(0, 50)
+axs5[1].hlines(target_10, data_dict10['Time_s'][0], data_dict10['Time_s'][-1], label="Target Cadence")
+axs5[1].plot(data_dict10['Time_s'], CT_5_Idata, color="tab:orange", label="Indirect Cadence")
+axs5[1].legend()
+axs5[1].set_xlabel("Time (s)")
+axs5[1].set_ylabel("Cadence (deg/s)")
+axs5[1].set_ylim(0, 50)
 
 plt.subplots_adjust(left=0.1,
                 bottom=0.1, 

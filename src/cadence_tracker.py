@@ -6,7 +6,7 @@ File for Cadence Tracker Class
 # Project Import
 
 # Python Import
-
+from collections import deque
 # 3rd-party Import
 import numpy as np
 from scipy import signal
@@ -39,13 +39,18 @@ class CadenceTracker():
         self._size = int(np.ceil(time_window_s / (1 / self._freq_Hz)))
         self._min_size = int(np.ceil(self._size/time_window_s))
         self._data = np.array([], dtype=np.float64)
+
         # Input initial data, only keep 'size' latest values
         if(data):
             self._data = np.append(self._data, data)
         if(len(self._data) > self._size):
             self._data = np.delete(self._data, np.s_[0:len(self._data)-self._size])
-        # Set initial cadence
-        self._target_cadence_degs = 0.0
+
+        # Initial Cadence weighted average window
+        self._HISTORY_SIZE = 15
+        self._cadence_history = deque([0.0]*self._HISTORY_SIZE, maxlen=self._HISTORY_SIZE)
+        self._cadence_weights = [i+1 for i in range(self._HISTORY_SIZE)]
+
         # Max degree arc TODO: Calculate this as it may change based on speed
         self._DEGREES_PER_STEP = 20.0
         self._method = 'direct'
@@ -126,6 +131,12 @@ class CadenceTracker():
         # We need at least a second of data for accurate cadence count
         if (len(self._data) < self._min_size):
             return 0.0
+
+        # Try to estimate with smaller window if not full
+        time_collected = self._time_window_s
+        
+        if ((len(self._data) < self._size) and (self._method == 'direct')):
+            time_collected = (len(self._data)/self._size)*self._time_window_s
         
         # Pick which method to get step counts
         step_count = 0
@@ -139,8 +150,12 @@ class CadenceTracker():
             step_count = 0
         # Convert step count to cadence
         arc_length = self._DEGREES_PER_STEP * step_count
-        self._target_cadence_degs = arc_length / self._time_window_s
-        return self._target_cadence_degs
+        target_cadence_degs = arc_length / time_collected
+
+        # Add cadence to rolling weighted average
+        self._cadence_history.append(target_cadence_degs)
+        rtn_cadence = np.average(self._cadence_history, weights=self._cadence_weights)
+        return rtn_cadence
 
 
     
