@@ -9,6 +9,7 @@ from imu_interface import ImuInterface
 # Python import
 from time import sleep
 # 3rd-party import
+import numpy as np
 import odrive
 from odrive.enums import *
 
@@ -44,11 +45,12 @@ if __name__ == "__main__":
     while(count < 5000):
         count += 1
         #sleep(.01)
-        #measurement = imu_itf.read()
-        # get accY or accM
-        #CT.add_measurement(accel_val)
-        #cadence = (CT.calculate_cadence())/360.0
-        cadence = 90/360.0
+        measurement = imu_itf.read()
+        accel_val = np.sqrt(np.power(measurement[0], 2) 
+            + np.power(measurement[1], 2) + np.power(measurement[2], 2))
+        CT.add_measurement(accel_val)
+        cadence = (CT.calculate_cadence())/360.0
+
         if (swing_forward):
             cadence *= -1
 
@@ -57,7 +59,7 @@ if __name__ == "__main__":
         print(f"Cadence: {cadence}")
         # Check angle
         encoder_angle = odrv0.axis0.encoder.pos_estimate
-        print(f"Encoder angle: {encoder_angle}")
+        #print(f"Encoder angle: {encoder_angle}")
         if (encoder_angle < upper_limit):
             swing_forward = False
         elif (encoder_angle > lower_limit):

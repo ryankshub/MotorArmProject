@@ -26,9 +26,9 @@ void init_device(void) {
     write_buf[1] = 0x00;
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
-    // Set Gyro with 2000 deg/s
+    // Set Gyro with +- 500 deg/s
     write_buf[0] = GYRO_CONFIG;
-    write_buf[1] = 0x18;
+    write_buf[1] = 0x08;
     i2c_write_blocking(i2c0, IMU_ADDR, write_buf, 2, false);
 
     // Config Sample Rate to both to be 1kHz

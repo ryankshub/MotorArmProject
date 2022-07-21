@@ -36,9 +36,9 @@
 #define WHO_AM_I 0x75 // Constants I2C addr; reg val should be 0x68
 
 // Constants
-#define SAMPLE_DIV 0x0F // Divide Sample Rate by 16; 
-#define ACCEL_CONV 0.0005987548828125 // For 2+-, 9.81/16384 LSB/g
-#define GYRO_CONV 0.06097560975609757 // for 2000 deg/s, 16.4 LSB/deg/s
+#define SAMPLE_DIV 0x4F // Divide Sample Rate by 80; 
+#define ACCEL_CONV 0.00061 // For 2+-, 9.81/16384 LSB/g
+#define GYRO_CONV 0.01527 // for 500 deg/s, 65.5 LSB/deg/s
 #define BAUDRATE 76800
 
 // Init I2C Hardware
