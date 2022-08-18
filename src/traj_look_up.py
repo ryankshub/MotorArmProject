@@ -14,7 +14,7 @@ class TrajectoryLookUp():
     A look-up table to determine the position set-point by referencing gait profiles of
     different speed
     """
-    def __init__(self, profiles, init_angle=0.0, EPSILON=10e-4):
+    def __init__(self, profiles, init_angle=0.0, EPSILON=0.01):
         """
         TrajectoryLookUp Constructor
 
@@ -29,6 +29,7 @@ class TrajectoryLookUp():
             float EPSILON - defaults to 10e-4
                 precision to compare internal values
         """
+        # Build profiles
         self._position_profiles = {}
         self._possible_speeds = []
         for speed_key in profiles:
@@ -36,8 +37,9 @@ class TrajectoryLookUp():
             self._position_profiles[speed_key] = df["Position"]
             self._possible_speeds.append(speed_key)
         self._possible_speeds.sorted()
+
+        # Parameters
         self._EPSILON = EPSILON
-        self._round_precision = 2
         self._time_normalizer = 30
         self._angle = init_angle
         self._past_angle = init_angle
@@ -62,6 +64,26 @@ class TrajectoryLookUp():
         else:
             return (scaled_steps - 27)/25
 
+
+    def _set_walk_speed(self, walk_speed):
+        """
+        """
+        # If speed is too slow, bump it to slowest
+        if walk_speed < self._possible_speeds[0]:
+            return (None, self._possible_speeds[0])
+
+        for i in range(1, len(self._possible_speeds)):
+            cand_speed = self._possible_speeds[i]
+            # If speed is equal to cand speed
+            if (abs(walk_speed - cand_speed) < self._EPSILON):
+                return (None, cand_speed)
+            
+            # If speed if less than cand speed
+            elif walk_speed < cand_speed:
+                return (self._possible_speeds[i-1], cand_speed)
+
+        # If speed is too fast, cap it to fastest 
+        return (None, self._possible_speeds[-1])
 
     def _search_trajs(walk_speed):
         """
