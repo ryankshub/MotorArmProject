@@ -7,35 +7,7 @@
 # 3rd-party import
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 from scipy import signal
-
-def parse_mt(filepath):
-    """
-    Parse a data file from MT IMU Software. 
-
-    Args:
-        string - filepath: filepath to MT .txt file
-    
-    Return:
-        dict of 7 arrays with 'Time_s', 'AccX', 'AccY', 'AccZ', 
-            'FreeAccX', 'FreeAccY', and 'FreeAccZ'
-    """
-    df = pd.read_csv(filepath, skiprows=4, sep='\t')
-    # Output data rate is 100Hz or 0.01s between samples
-    start_sample = df['PacketCounter'][0]
-    df['Time_s'] = [0.01 * (df['PacketCounter'][i] - start_sample) for i in range(len(df['PacketCounter']))]
-    df['AccM'] = [np.sqrt(np.power(df['Acc_X'][i], 2) + np.power(df['Acc_Y'][i], 2) + np.power(df['Acc_Z'][i], 2))
-                    for i in range(len(df['Acc_X']))]
-    rtn_dic = {'Time_s': df['Time_s'].values,
-               'AccX': df['Acc_X'].values,
-               'AccY': df['Acc_Y'].values,
-               'AccZ': df['Acc_Z'].values,
-               'AccM': df['AccM'].values,
-               'FreeAccX': df['FreeAcc_X'].values,
-               'FreeAccY': df['FreeAcc_Y'].values,
-               'FreeAccZ': df['FreeAcc_Z'].values}
-    return rtn_dic
 
 
 def plot_all_mt_data(filepath, title, psd_plot=True):
@@ -183,20 +155,3 @@ def plot_mt_data(filepath, title, key, psd_plot=True):
                     wspace=0.4, 
                     hspace=0.6)
     plt.show()
-
-
-def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
-    """
-    Apply butterworth filter of certain type
-
-    Args:
-        np.array data - raw data
-        int filter_order - order of the butterworth filter
-        string filter_type - type of filter: options are 'lowpass', 'highpass',
-            'bandpass', or 'bandstop' 
-        float(s) cutoff_freq - cutoff frequency for the filter. For 'lowpass' 
-            and 'highpass' should be a scalar; for 'bandpass' or 'bandstop', the 
-            frequency should be a two-elem list
-    """
-    b, a = signal.butter(filter_order, cutoff_freq, filter_type, fs=fs)
-    return signal.lfilter(b, a, data)
