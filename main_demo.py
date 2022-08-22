@@ -4,8 +4,7 @@ Main file for demo
 """
 
 # Project import
-from cadence_tracker import CadenceTracker
-from imu_interface import ImuInterface
+from src import CadenceTracker, ImuInterface
 # Python import
 from time import sleep
 # 3rd-party import
