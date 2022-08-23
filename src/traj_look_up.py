@@ -36,7 +36,7 @@ class TrajectoryLookUp():
             df = pd.read_csv(profiles[speed_key], names=["Position","Torque"])
             self._position_profiles[speed_key] = df["Position"]
             self._possible_speeds.append(speed_key)
-        self._possible_speeds.sorted()
+        self._possible_speeds.sort()
 
         # Parameters
         self._EPSILON = EPSILON
@@ -134,7 +134,7 @@ class TrajectoryLookUp():
             if (pos_df[min_idx] <= pos_df[(min_idx-1) % length]) == swing_cond:
                 return min_idx
             pos_df = pos_df.drop(index=min_idx)
-            pos_df.reset_index(inplace=True)
+            pos_df.reset_index(inplace=True, drop=True)
         
         ## We should never reach this case
         # TODO: Exception??
