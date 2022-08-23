@@ -26,7 +26,7 @@ class TrajectoryLookUp():
             float init_angle - defaults to 0.0
                 The initial angle of the arm(in rev). 0.0 points downward 
 
-            float EPSILON - defaults to 10e-4
+            float EPSILON - defaults to 0.01
                 precision to compare internal values
         """
         # Build profiles
@@ -195,10 +195,10 @@ class TrajectoryLookUp():
             rtn_setpoint = self._blend_traj(self._slow_speed, self._fast_speed, self._curr_speed,
                 self._slow_index, self._fast_index)
             #Update index
-            self._slow_index += 1
-            self._fast_index += 1
+            self._slow_index = (self._slow_index + 1) % len(self._position_profiles[self._slow_speed])
+            self._fast_index = (self._fast_index + 1) % len(self._position_profiles[self._fast_speed])
         else:
             rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
-            self._fast_index += 1
+            self._fast_index = (self._fast_index + 1) % len(self._position_profiles[self._fast_speed])
 
         return rtn_setpoint

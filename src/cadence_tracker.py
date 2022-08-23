@@ -61,6 +61,7 @@ class CadenceTracker():
         # Set up internal filter:
         self._FILTER_B, self._FILTER_A = signal.butter(3, 2, 'lowpass', fs=self._freq_Hz)
 
+
     def clear_data(self):
         """
         Clears tracker of acceleration data
@@ -104,7 +105,6 @@ class CadenceTracker():
         int step_count: number of steps detected in data
         """
         filtered_data = signal.lfilter(self._FILTER_B, self._FILTER_A, self._data)
-        #filtered_data = mt_parser.apply_filter(self._data, self._freq_Hz, 3, 'lowpass', 2)
         step_count = len(signal.find_peaks(filtered_data)[0])
         return step_count
         
@@ -133,10 +133,10 @@ class CadenceTracker():
             return 0.0
 
         # Try to estimate with smaller window if not full
-        time_collected = self._time_window_s
+        # time_collected = self._time_window_s
         
-        if ((len(self._data) < self._size) and (self._method == 'direct')):
-            time_collected = (len(self._data)/self._size)*self._time_window_s
+        # if ((len(self._data) < self._size) and (self._method == 'direct')):
+        #     time_collected = (len(self._data)/self._size)*self._time_window_s
         
         # Pick which method to get step counts
         step_count = 0
@@ -149,17 +149,10 @@ class CadenceTracker():
             print("ERROR: UNSUPPORTED STEP COUNT METHOD FOUND")
             step_count = 0
         # Convert step count to cadence
-        arc_length = self._DEGREES_PER_STEP * step_count
-        target_cadence_degs = arc_length / time_collected
+        # arc_length = self._DEGREES_PER_STEP * step_count
+        # target_cadence_degs = arc_length / time_collected
 
         # Add cadence to rolling weighted average
-        self._cadence_history.append(target_cadence_degs)
-        rtn_cadence = np.average(self._cadence_history, weights=self._cadence_weights)
-        return rtn_cadence
-
-
-    
-
-
-
-        
+        # self._cadence_history.append(target_cadence_degs)
+        # rtn_cadence = np.average(self._cadence_history, weights=self._cadence_weights)
+        return step_count
