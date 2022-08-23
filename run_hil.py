@@ -27,7 +27,7 @@ def hil_main(datafile, operation_freq=100, time_window_s=4):
     accel_measures = data_dict["AccM"]
 
     # Create Cadence Tracker
-    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=time_window_s, method='direct')
+    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=time_window_s, method='indirect')
 
     # Create Trajectory Look-Up
     profiles = {0.8: 'data/template_data/08ms.csv',
