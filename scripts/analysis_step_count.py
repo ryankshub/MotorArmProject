@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
-# Add Project root for imports
+# Python import
 import os
 import sys
+
+# Add Project root for imports
 FILE_PATH = sys.path[0]
 ROOT_PATH = os.path.join(FILE_PATH, '..')
 sys.path.append(ROOT_PATH)
@@ -10,8 +12,6 @@ sys.path.append(ROOT_PATH)
 # Project Import
 from src import CadenceTracker
 from utils import parse_mt_file, apply_filter
-
-# Python import
 
 # 3rd-party import
 import matplotlib.pyplot as plt
