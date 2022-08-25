@@ -14,14 +14,14 @@ ROOT_PATH = os.path.join(FILE_PATH, '..')
 sys.path.append(ROOT_PATH)
 
 # Project Import
-from utils import apply_filter, parse_mt_file
+from utils import apply_filter, apply_zero_phase_filter, parse_mt_file
 
 # 3rd Party imports
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 
-def plot_frequency_analysis(title, filepath, order, cutoff, fs):
+def plot_frequency_analysis(title, filepath, order, cutoff, fs, causal=True):
     # Parse data
     data_path = os.path.join(ROOT_PATH, filepath)
     data_dict = parse_mt_file(data_path)
@@ -33,7 +33,11 @@ def plot_frequency_analysis(title, filepath, order, cutoff, fs):
     w, h = signal.freqz(b,a, fs=fs, worN=8000)
 
     # Get filt data
-    filt_data = apply_filter(raw_data, fs, order, 'low', cutoff)
+    filt_data = None
+    if (causal):
+        filt_data = apply_filter(raw_data, fs, order, 'low', cutoff)
+    else:
+        filt_data = apply_zero_phase_filter(raw_data, fs, order, 'low', cutoff)
 
     # Get peak times 
     peaks, _ = signal.find_peaks(filt_data)
@@ -59,8 +63,8 @@ def plot_frequency_analysis(title, filepath, order, cutoff, fs):
     ax_d.set_xlabel('Time [sec]')
     ax_d.set_ylabel('Accel [m/s/s]')
     ax_d.set_title(f"Effects of Lowpass Filter: Cutoff {cutoff}")
-    #ax_d.set_xlim(15, 40)
-    #ax_d.set_ylim(6,14)
+    ax_d.set_xlim(10, 20)
+    ax_d.set_ylim(6,14)
     ax_d.grid()
     ax_d.legend()
 
@@ -75,14 +79,13 @@ def plot_frequency_analysis(title, filepath, order, cutoff, fs):
     ax_s[0].grid()
     ax_s[1].grid()
     ax_s[0].set_title("Steps detected during signal")
-    ax_s[0].set_xlim(15, 40)
-    ax_s[1].set_xlim(15, 40)
+    ax_s[0].set_xlim(10, 20)
+    ax_s[1].set_xlim(10, 20)
     ax_s[0].set_ylim(6,14)
     ax_s[1].set_ylim(6,14)
     ax_s[1].set_xlabel('Time [sec]')
     ax_s[0].set_ylabel('Accel [m/s/s]')
     ax_s[1].set_ylabel('Accel [m/s/s]')
-
 
 
 if __name__ == "__main__":
@@ -95,6 +98,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_freq', '-s', type=float, default=100.0, 
         help="Sampling freqency")
     parser.add_argument("--title", '-t', type=str, help="Figure title for each plot")
+    parser.add_argument('--zero_phase', '-z', action="store_true", default=False)
 
     args = parser.parse_args()
     print(args)
@@ -103,6 +107,8 @@ if __name__ == "__main__":
     cutoff = args.cutoff
     fs = args.sample_freq
     title = args.title
-    plot_frequency_analysis(title, filepath, order=order, cutoff=cutoff, fs=fs)
+    causal = not args.zero_phase
+
+    plot_frequency_analysis(title, filepath, order=order, cutoff=cutoff, fs=fs, causal=causal)
 
     plt.show()
