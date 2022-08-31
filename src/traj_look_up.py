@@ -44,10 +44,14 @@ class TrajectoryLookUp():
         self._angle = init_angle
         self._past_angle = init_angle
         self._curr_speed = 0.0
+
         self._slow_speed = 0.0
+        self._slow_index = 0
+        self._slow_incre = 0
+
         self._fast_speed = 0.0
         self._fast_index = 0
-        self._slow_index = 0
+        self._fast_incre = 0
 
 
     @property
@@ -121,7 +125,9 @@ class TrajectoryLookUp():
                 Preset speed in the profiles
         
         Rtn:
-            int index of where arm is in trajectory
+            tuple(int,int) 
+                -index of where arm is in trajectory
+                -amount to increment look-up
         """
         # Get swing condition
         # True = Swing Forward, False = Swing Backward
@@ -132,13 +138,13 @@ class TrajectoryLookUp():
             length = len(pos_df)
             min_idx = pos_df.idxmin()
             if (pos_df[min_idx] <= pos_df[(min_idx-1) % length]) == swing_cond:
-                return min_idx
-            pos_df = pos_df.drop(index=min_idx)
-            pos_df.reset_index(inplace=True, drop=True)
-        
+                return (min_idx, 1)
+            else:
+                return (min_idx, -1)
+
         ## We should never reach this case
         # TODO: Exception??
-        return 0
+        return (0, 0)
 
 
     def _blend_traj(self, slow_speed, fast_speed, curr_speed,
@@ -183,9 +189,9 @@ class TrajectoryLookUp():
             # Calculate new slow/fast speed
             self._curr_speed = est_speed
             self._slow_speed, self._fast_speed = self._get_walk_speeds(self._curr_speed)
-            self._fast_index = self._search_trajs(self._fast_speed)
+            self._fast_index, self._fast_incre = self._search_trajs(self._fast_speed)
             if self._slow_speed:
-                self._slow_index = self._search_trajs(self._slow_speed)
+                self._slow_index, self._slow_incre = self._search_trajs(self._slow_speed)
             else:
                 self._slow_index = None
 
@@ -195,10 +201,10 @@ class TrajectoryLookUp():
             rtn_setpoint = self._blend_traj(self._slow_speed, self._fast_speed, self._curr_speed,
                 self._slow_index, self._fast_index)
             #Update index
-            self._slow_index = (self._slow_index + 1) % len(self._position_profiles[self._slow_speed])
-            self._fast_index = (self._fast_index + 1) % len(self._position_profiles[self._fast_speed])
+            self._slow_index = (self._slow_index + self._slow_incre) % len(self._position_profiles[self._slow_speed])
+            self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
         else:
             rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
-            self._fast_index = (self._fast_index + 1) % len(self._position_profiles[self._fast_speed])
+            self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
 
         return rtn_setpoint

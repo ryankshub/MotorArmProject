@@ -11,6 +11,7 @@ import argparse
 import os
 import time
 # 3rd-party import
+from matplotlib import pyplot as plt
 import numpy as np
 import odrive
 from odrive.enums import *
@@ -59,8 +60,12 @@ def hil_main(datafile, operation_freq=100, time_window_s=4):
     encoder_df = pd.read_csv('data/template_data/10ms.csv', names=["Position","Torque"])
     traj_dict.angle = 0.0
     count = 0
+    log_angle = []
+    log_steps = []
+    log_time = []
+    log_speeds = []
     for i in range(len(time_steps)):
-        print(i)
+        log_time.append(i)
         #Get measurements
         accel_measure = accel_measures[i]
         # encoder_measure = odrv0.axis0.encoder.pos_estimate
@@ -70,13 +75,42 @@ def hil_main(datafile, operation_freq=100, time_window_s=4):
         # traj_dict.angle = encoder_measure
         # Pass cadence to trajectory look-up
         steps = CT.calculate_cadence()
+        log_steps.append(steps)
         if (steps > 0): # Presume walking
             pos_setpoint = traj_dict.get_pos_setpoint(steps, time_window_s)
+            log_angle.append(pos_setpoint)
+            log_speeds.append(traj_dict._fast_speed)
             print(f"Slow speed: {traj_dict._slow_speed}, Fast speed: {traj_dict._fast_speed}")        
             traj_dict.angle = pos_setpoint ### TODO: REMOVE; JUST FOR DEBUGGING
+        else:
+            log_angle.append(traj_dict.angle)
+            log_speeds.append(0)
         # odrv0.axis0.controller.input_pos = pos_setpoint
 
+    plot_hil_results(log_time, log_angle, log_steps, log_speeds)
     return 0
+
+
+def plot_hil_results(times, angles, steps, speeds):
+    """
+    Plot Hil results
+    """
+    fig1, ax1 = plt.subplots()
+    ax1.plot(times, angles, label="target angle", color='b')
+    ax1.set_xlabel("Time [sec]")
+    ax1.set_ylabel("Target angle [rev]")
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot(times, steps, label="estimated steps", color="g")
+    ax2.set_xlabel("Time [sec]")
+    ax2.set_ylabel("Estimated steps taken in past time window")
+
+    fig3, ax3 = plt.subplots()
+    ax3.plot(times, speeds, label="Target Speed", color='r')
+    ax3.set_xlabel("Time [sec]")
+    ax3.set_ylabel("Estimated Walking Speed [m/s]")
+
+    plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run Hardware in the loop simulation')
