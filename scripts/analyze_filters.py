@@ -6,7 +6,7 @@
 import argparse
 import os
 import sys
-
+import time
 # Project imports
 # Add Project root for imports
 FILE_PATH = sys.path[0]
@@ -35,10 +35,15 @@ def plot_frequency_analysis(title, filepath, order, cutoff, fs, causal=True):
     # Get filt data
     filt_data = None
     if (causal):
+        st = time.process_time()
         filt_data = apply_filter(raw_data, fs, order, 'low', cutoff)
+        et = time.process_time()
+        print(f"Compute Time LFilter: {et - st}")
     else:
+        st = time.process_time()
         filt_data = apply_zero_phase_filter(raw_data, fs, order, 'low', cutoff)
-
+        et = time.process_time()
+        print(f"Compute Time FiltFilt: {et - st}")
     # Get peak times 
     peaks, _ = signal.find_peaks(filt_data)
     peak_times = timestamps[peaks]
@@ -73,9 +78,9 @@ def plot_frequency_analysis(title, filepath, order, cutoff, fs, causal=True):
     fig_s.suptitle(title)
     ax_s[0].plot(timestamps, raw_data, 'b-')
     ax_s[1].plot(timestamps, filt_data, 'g-')
-    for time in peak_times:
-        ax_s[0].axvline(time, color='k')
-        ax_s[1].axvline(time, color='k')
+    for peak_time in peak_times:
+        ax_s[0].axvline(peak_time, color='k')
+        ax_s[1].axvline(peak_time, color='k')
     ax_s[0].grid()
     ax_s[1].grid()
     ax_s[0].set_title("Steps detected during signal")
