@@ -129,7 +129,7 @@ def plot_mt_data(filepath, title, key, psd_plot=True):
 
         axs[0].plot(data_dict['Time_s'], accel_data, color="tab:blue")
         axs[0].set_xlabel("Time(ms)")
-        axs[0].set_ylabel("AccY")
+        axs[0].set_ylabel("Acceleration[m/s/s]")
         #axs[0][0].set_ylim([-14,14])
 
         # Plot Freq domain

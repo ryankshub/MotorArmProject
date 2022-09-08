@@ -28,7 +28,7 @@ def hil_main(datafile, operation_freq=100, time_window_s=4):
     accel_measures = data_dict["AccM"]
 
     # Create Cadence Tracker
-    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=time_window_s, method='indirect')
+    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=time_window_s, method='direct')
 
     # Create Trajectory Look-Up
     profiles = {0.8: 'data/template_data/08ms.csv',
@@ -95,20 +95,23 @@ def plot_hil_results(times, angles, steps, speeds):
     """
     Plot Hil results
     """
-    fig1, ax1 = plt.subplots()
-    ax1.plot(times, angles, label="target angle", color='b')
-    ax1.set_xlabel("Time [sec]")
-    ax1.set_ylabel("Target angle [rev]")
 
-    fig2, ax2 = plt.subplots()
-    ax2.plot(times, steps, label="estimated steps", color="g")
-    ax2.set_xlabel("Time [sec]")
-    ax2.set_ylabel("Estimated steps taken in past time window")
+    fig, axs = plt.subplots(3, 1, sharex=True)
+    fig.suptitle("Software HIL with 'direct' Cadence Tracker for Walk 1.0m/s")
+    axs[0].set_title("Target angle by Trajectory Look-Up")
+    axs[0].plot(times, angles, label="target angle", color='b')
+    #axs[0].set_xlabel("Time [sec]")
+    axs[0].set_ylabel("Target angle [rev]")
 
-    fig3, ax3 = plt.subplots()
-    ax3.plot(times, speeds, label="Target Speed", color='r')
-    ax3.set_xlabel("Time [sec]")
-    ax3.set_ylabel("Estimated Walking Speed [m/s]")
+    axs[1].set_title("Estimated steps taken in past time window")
+    axs[1].plot(times, steps, label="estimated steps", color="g")
+    #axs[1].set_xlabel("Time [sec]")
+    axs[1].set_ylabel("Steps")
+
+    axs[2].set_title("Estimated walking speed (based on RKS model)")
+    axs[2].plot(times, speeds, label="Target Speed", color='r')
+    axs[2].set_xlabel("Time [msec]")
+    axs[2].set_ylabel("Estimated Walking Speed [m/s]")
 
     plt.show()
 
