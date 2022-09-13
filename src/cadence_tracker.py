@@ -141,7 +141,9 @@ class CadenceTracker():
         # Pick which method to get step counts
         step_count = 0
         if (self._method == 'direct'):
-            step_count = self.count_steps()
+            # Apply sliding window for direct step method
+            self._cadence_history.append(self.count_steps())
+            step_count = np.average(self._cadence_history, weights=self._cadence_weights)
         elif (self._method == 'indirect'):
             step_count = self.estimate_steps()
         else:
