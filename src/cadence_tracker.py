@@ -121,7 +121,7 @@ class CadenceTracker():
         f, Pxx = signal.welch(self._data, self._freq_Hz, nperseg=nPts)
         max_idx = np.argmax(Pxx)
         max_freq = f[max_idx]
-        return int(np.ceil(self._time_window_s / (1/max_freq)))
+        return np.ceil(self._time_window_s / (1/max_freq))
 
 
     def calculate_cadence(self):
@@ -142,8 +142,7 @@ class CadenceTracker():
         step_count = 0
         if (self._method == 'direct'):
             # Apply sliding window for direct step method
-            self._cadence_history.append(self.count_steps())
-            step_count = np.average(self._cadence_history, weights=self._cadence_weights)
+            step_count = self.count_steps() 
         elif (self._method == 'indirect'):
             step_count = self.estimate_steps()
         else:
