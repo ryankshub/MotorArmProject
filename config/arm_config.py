@@ -30,7 +30,9 @@ odrv0.axis0.motor.config.motor_type = MOTOR_TYPE_HIGH_CURRENT
 odrv0.axis0.encoder.config.abs_spi_cs_gpio_pin = 4
 odrv0.axis1.encoder.config.abs_spi_cs_gpio_pin = 3
 odrv0.axis0.encoder.config.mode = ENCODER_MODE_SPI_ABS_AMS
+#odrv0.axis1.encoder.config.mode = 0# ENCODER_MODE_SPI_ABS_AMS
 odrv0.axis0.encoder.config.cpr = 2**14
+#odrv0.axis1.encoder.config.cpr = 2**14
 
 # Controller Configuration:
 odrv0.axis0.controller.config.vel_limit = 2.0  # [turn/s]
@@ -42,27 +44,26 @@ odrv0.axis0.controller.config.vel_integrator_gain = 0.15  # [Nm/((turn/s) * s)]
 
 # Save configuration:
 odrv0.axis0.requested_state = AXIS_STATE_IDLE
-odrv0.save_configuration()
-# try:
-#     odrv0.save_configuration()
-# except:
-#     print("Odrive is rebooting..")
-# finally:
-#     odrv0 = odrive.find_any()
+try:
+    odrv0.save_configuration()
+except:
+    print("Odrive is rebooting..")
+finally:
+    odrv0 = odrive.find_any()
 
 
-# Motor Calibration:
+# # Motor Calibration:
 # odrv0.axis0.requested_state = AXIS_STATE_FULL_CALIBRATION_SEQUENCE
 
-# # Encoder Calibration:
+# # # Encoder Calibration:
 # odrv0.axis0.requested_state = AXIS_STATE_ENCODER_OFFSET_CALIBRATION
 
-# # Enable closed loop control:
+# # # Enable closed loop control:
 # odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
 
-# # Save Motor and Encoder Offset Calibration:
+# # # Save Motor and Encoder Offset Calibration:
 # odrv0.axis0.encoder.config.pre_calibrated = True
 # odrv0.axis0.motor.config.pre_calibrated = True
 
-# # Error Handling:
+# # # Error Handling:
 # odrv0.clear_errors()
