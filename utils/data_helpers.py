@@ -130,5 +130,5 @@ def extract_feat(samples, label, fs=100, entropy=True):
 
     feat_df = pd.DataFrame(rtn_dict)
     return feat_df
-     
+    
 
