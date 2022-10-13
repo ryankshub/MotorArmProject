@@ -19,9 +19,14 @@ from utils import extract_feat, parse_mt_file, shred_data
 # plot_features
 
 # 3rd-party Import
+import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier as knnC
 
 # Available Models bit-flag
 KNN = 0b00001
@@ -59,20 +64,39 @@ def train_models(train_directory, models_bit_flag, plot_feat=False, plot_result=
 
     # Parse walking files
     walk_samples = fill_samples(walk_path, walk_files)
-    print("Walk Samples")
-    print(walk_samples[5])
-    # non_walk_path = fill_samples(non_walk_files)
+    non_walk_samples = fill_samples(non_walk_path, non_walk_files)
 
-    # # Extract features
-    # walk_features = extract_feat(walk_samples, label=1)
-    # non_walk_features = extract_feat(non_walk_features, label=0)
-    # features = pd.concat([walk_features, non_walk_features]) 
+    # Extract features
+    walk_features = extract_feat(walk_samples, label=1)
+    print("Walk Features")
+    print(walk_features.head(20))
+    print(walk_features.describe())
+    non_walk_features = extract_feat(non_walk_samples, label=0)
+    print("Non Walk Features")
+    print(non_walk_features.head(20))
+    print(non_walk_features.describe())
+    features = pd.concat([walk_features, non_walk_features]) 
 
-    # # Plot features
-    # if (plot_feat):
-    # plot_features(walk_features, non_walk_features)
+    # Plot features
+    if (plot_feat):
+        plot_features(walk_features, non_walk_features)
 
     # Train models
+    train_data, test_data = train_test_split(features, test_size=0.9, random_state=42)
+    train_labels = train_data["Label"]
+    train_data = train_data.drop(["Label"], axis=1)
+    test_labels = test_data["Label"]
+    test_data = test_data.drop(["Label"], axis=1)
+
+    print()
+    if (train_knn):
+        knn_model = knnC(n_neighbors=3)
+        knn_model.fit(train_data, train_labels)
+        knn_predict = knn_model.predict(test_data)
+        knn_accuracy = accuracy_score(np.array(test_labels), np.array(knn_predict))
+        print(f"KNN Accuracy: {knn_accuracy}")
+
+    # Plot results
      
 
 def get_files_in_dir(dir_path):
@@ -111,6 +135,7 @@ def plot_features(walk_feats, non_walk_feats, plot_3D=True):
                 label="Non-walk")
     plt.xlabel("Dominant Frequency[Hz]")
     plt.ylabel("Intensity")
+    plt.legend()
 
     # Figure 2: Intensity vs Entropy
     plt.figure(2)
@@ -124,6 +149,7 @@ def plot_features(walk_feats, non_walk_feats, plot_3D=True):
                 label="Non-walk")
     plt.xlabel("Intensity")
     plt.ylabel("Entropy")
+    plt.legend()
 
     # Figure 3: DomFreq vs Entropy
     plt.figure(3)
@@ -137,7 +163,7 @@ def plot_features(walk_feats, non_walk_feats, plot_3D=True):
                 label="Non-walk")
     plt.xlabel("Dominant Frequency[Hz]")
     plt.ylabel("Entropy")
-
+    plt.legend()
     
     if (plot_3D):
         fig = plt.figure(4)
@@ -152,9 +178,10 @@ def plot_features(walk_feats, non_walk_feats, plot_3D=True):
                    zs=non_walk_feats['Periodicity'],
                    c="red",
                    label="Non-walk")
-        ax.xlabel("Dominant Frequency[Hz]")
-        ax.ylabel("Intensity")
-        ax.zlabel("Periodicity")
+        ax.set_xlabel("Dominant Frequency[Hz]")
+        ax.set_ylabel("Intensity")
+        ax.set_zlabel("Periodicity")
+        ax.legend()
 
     plt.show()
 
