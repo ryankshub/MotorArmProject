@@ -4,10 +4,15 @@ Collection of functions to help massage/manipulate data
 """
 
 # Project import
+from parser_fcns import parse_mt_file
 
 # Python import
+import os
+import re 
 
 # 3rd-party import
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
 from scipy import signal, stats
@@ -48,6 +53,145 @@ def apply_zero_phase_filter(data, fs, filter_order, filter_type, cutoff_freq):
     """
     b, a = signal.butter(filter_order, cutoff_freq, filter_type, fs=fs)
     return signal.filtfilt(b, a, data)
+
+
+def build_training_set(data_directory, plot_feat=False):
+    # Read files
+    data_files = [f for f in os.listdir(data_directory) \
+        if os.path.isfile(os.path.join(data_directory, f))]
+
+    # Parse files
+    samples, labels, fss = fill_samples(data_directory, data_files)
+
+    # Extract features
+    feature_sets = []
+    for sample, label, fs in zip(samples, labels, fss):
+        feature_sets.append(extract_feat(sample, label, fs=fs))
+    
+    # Plot features
+    if (plot_feat):
+        pass
+
+    features = pd.concat(feature_sets)
+    return features
+
+
+def extract_feat(samples, label, fs=100, entropy=True):
+    """
+    Given samples, return a labeled training set with features. 
+    The feature used are dominant frequency, intensity at dominant freq, and 
+    periodicity.  
+
+    Args:
+        list of np.arrays samples - list of activity data chunks
+        literal label - label of the data.
+        int fs - sampling frequency of the data 
+        bool entropy - defaulted True; if true, uses the entropy of the 
+            freq domain to measure periodic characteristic. False results
+            in using an in-house measure
+
+    Return:
+        Dataframe with four columns: DomFreq, Intensity, Periodicity, Label
+    """
+    rtn_dict = {"DomFreq":[], "Intensity":[], "Periodicity":[]}
+    rtn_dict["Label"] = [label]*len(samples)
+    for sample in samples:
+        nPts = len(sample)
+        f, Pxx = signal.welch(sample, fs, nperseg=nPts)
+        max_idx = np.argmax(Pxx)
+        rtn_dict["DomFreq"].append(f[max_idx])
+        rtn_dict["Intensity"].append(Pxx[max_idx])
+        if entropy:
+            P_sum = sum(Pxx)
+            Pxx_norm = Pxx/P_sum
+            rtn_dict["Periodicity"].append(stats.entropy(Pxx_norm))
+        else:
+            # TO-DO: Add custom spread calculation and compare performance
+            # For now make non-entropy calc 0 zero out the Periodicity axis
+            rtn_dict["Periodicity"].append(0)
+
+    feat_df = pd.DataFrame(rtn_dict)
+    return feat_df
+
+
+def fill_samples(dir, files):
+    samples = []
+    for file in files:
+        if re.match(r"\AMT", file):
+            data_dict = parse_mt_file(os.path.join(dir,file))
+        #TODO: Add other parsers
+        # elif re.match(r"\ASIM", filename):
+        #     data_dict = parse_simple_file(file)
+        # elif re.match(r"\AIMU", filename):
+        #     data_dict = parse_imu_file(file)
+        else:
+            raise Exception("Invalid File Format found")
+        samples = shred_data(data_dict, samples=samples)
+    return samples
+
+
+def plot_features(walk_feats, non_walk_feats, plot_3D=True):
+    # Figure 1 DomFreq v Intensity
+    plt.figure(1)
+    plt.scatter(x=walk_feats["DomFreq"], 
+                y=walk_feats["Intensity"],
+                c="blue",
+                label="Walk")
+    plt.scatter(x=non_walk_feats["DomFreq"],
+                y=non_walk_feats["Intensity"],
+                c="red",
+                label="Non-walk")
+    plt.xlabel("Dominant Frequency[Hz]")
+    plt.ylabel("Intensity")
+    plt.legend()
+
+    # Figure 2: Intensity vs Entropy
+    plt.figure(2)
+    plt.scatter(x=walk_feats["Intensity"],
+                y=walk_feats["Periodicity"],
+                c="blue",
+                label="Walk")
+    plt.scatter(x=non_walk_feats["Intensity"],
+                y=non_walk_feats["Periodicity"],
+                c="red",
+                label="Non-walk")
+    plt.xlabel("Intensity")
+    plt.ylabel("Entropy")
+    plt.legend()
+
+    # Figure 3: DomFreq vs Entropy
+    plt.figure(3)
+    plt.scatter(x=walk_feats["DomFreq"],
+                y=walk_feats["Periodicity"],
+                c="blue",
+                label="Walk")
+    plt.scatter(x=non_walk_feats["DomFreq"],
+                y=non_walk_feats["Periodicity"],
+                c="red",
+                label="Non-walk")
+    plt.xlabel("Dominant Frequency[Hz]")
+    plt.ylabel("Entropy")
+    plt.legend()
+    
+    if (plot_3D):
+        fig = plt.figure(4)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(xs=walk_feats['DomFreq'],
+                   ys=walk_feats['Intensity'],
+                   zs=walk_feats['Periodicity'],
+                   c="blue",
+                   label="Walk")
+        ax.scatter(xs=non_walk_feats['DomFreq'],
+                   ys=non_walk_feats['Intensity'],
+                   zs=non_walk_feats['Periodicity'],
+                   c="red",
+                   label="Non-walk")
+        ax.set_xlabel("Dominant Frequency[Hz]")
+        ax.set_ylabel("Intensity")
+        ax.set_zlabel("Periodicity")
+        ax.legend()
+
+    plt.show()
 
 
 def shred_data(data_dict, samples=None, interval=3.5, time_key="Time_s", data_key="AccM"):
@@ -92,43 +236,3 @@ def shred_data(data_dict, samples=None, interval=3.5, time_key="Time_s", data_ke
         rtn_array = samples + rtn_array
     
     return rtn_array
-
-
-def extract_feat(samples, label, fs=100, entropy=True):
-    """
-    Given samples, return a labeled training set with features. 
-    The feature used are dominant frequency, intensity at dominant freq, and 
-    periodicity.  
-
-    Args:
-        list of np.arrays samples - list of activity data chunks
-        literal label - label of the data.
-        int fs - sampling frequency of the data 
-        bool entropy - defaulted True; if true, uses the entropy of the 
-            freq domain to measure periodic characteristic. False results
-            in using an in-house measure
-
-    Return:
-        Dataframe with four columns: DomFreq, Intensity, Periodicity, Label
-    """
-    rtn_dict = {"DomFreq":[], "Intensity":[], "Periodicity":[]}
-    rtn_dict["Label"] = [label]*len(samples)
-    for sample in samples:
-        nPts = len(sample)
-        f, Pxx = signal.welch(sample, fs, nperseg=nPts)
-        max_idx = np.argmax(Pxx)
-        rtn_dict["DomFreq"].append(f[max_idx])
-        rtn_dict["Intensity"].append(Pxx[max_idx])
-        if entropy:
-            P_sum = sum(Pxx)
-            Pxx_norm = Pxx/P_sum
-            rtn_dict["Periodicity"].append(stats.entropy(Pxx_norm))
-        else:
-            # TO-DO: Add custom spread calculation and compare performance
-            # For now make non-entropy calc 0 zero out the Periodicity axis
-            rtn_dict["Periodicity"].append(0)
-
-    feat_df = pd.DataFrame(rtn_dict)
-    return feat_df
-    
-

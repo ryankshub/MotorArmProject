@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Machine Learning Pipeline
+# Machine Learning Pipeline (Draft - depricated)
 
 #Python import
 import argparse
@@ -43,22 +43,22 @@ def train_models(train_directory, models_bit_flag, plot_feat=False, plot_result=
     train_mul_lin = MULTI_LINEAR & models_bit_flag
     train_radix_svm = RADIX_SVM & models_bit_flag
     train_poly_svm = POLY_SVM & models_bit_flag
-    print(f"Dir {train_directory}")
+    #print(f"Dir {train_directory}")
 
-    print(f"KNN: {train_knn}")
-    print(f"SVM: {train_svm}")
-    print(f"MULTI: {train_mul_lin}")
-    print(f"RADIX: {train_radix_svm}")
-    print(f"POLY: {train_poly_svm}")
+    #print(f"KNN: {train_knn}")
+    #print(f"SVM: {train_svm}")
+    #print(f"MULTI: {train_mul_lin}")
+    #print(f"RADIX: {train_radix_svm}")
+    #print(f"POLY: {train_poly_svm}")
 
     # Set up file paths
     walk_path = os.path.abspath(os.path.join(train_directory, 'walk'))
     print(os.listdir(walk_path))
-    print(f"Walk Path: {walk_path}")
+    #print(f"Walk Path: {walk_path}")
     walk_files = get_files_in_dir(walk_path)
-    print(f"Walk Files: {walk_files}")
+    #print(f"Walk Files: {walk_files}")
     non_walk_path = os.path.abspath(os.path.join(train_directory, 'non_walk'))
-    print(f"Non Walk Path: {non_walk_path}")
+    #print(f"Non Walk Path: {non_walk_path}")
     non_walk_files = get_files_in_dir(non_walk_path)
     print(f"Non Walk Files: {non_walk_files}")
 
