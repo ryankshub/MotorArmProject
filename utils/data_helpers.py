@@ -4,7 +4,7 @@ Collection of functions to help massage/manipulate data
 """
 
 # Project import
-from parser_fcns import parse_mt_file
+from .parser_fcns import parse_mt_file
 
 # Python import
 import os
@@ -16,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
 from scipy import signal, stats
+
 
 
 def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
