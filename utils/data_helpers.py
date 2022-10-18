@@ -75,7 +75,7 @@ def build_training_set(data_directory, plot_feat=False):
 
     # Plot features
     if (plot_feat):
-        pass
+        plot_features(features, plot3D=True)
 
     return features
 
@@ -144,66 +144,70 @@ def fill_samples(dir):
     return samples, labels, rates
 
 
-def plot_features(walk_feats, non_walk_feats, plot_3D=True):
-    # Figure 1 DomFreq v Intensity
-    plt.figure(1)
-    plt.scatter(x=walk_feats["DomFreq"], 
-                y=walk_feats["Intensity"],
-                c="blue",
-                label="Walk")
-    plt.scatter(x=non_walk_feats["DomFreq"],
-                y=non_walk_feats["Intensity"],
-                c="red",
-                label="Non-walk")
-    plt.xlabel("Dominant Frequency[Hz]")
-    plt.ylabel("Intensity")
-    plt.legend()
+def plot_features(features, plot3D=True):
+    label_vals = features["Label"].unique()
+    # Set up Figures and Axes
+    fig1 = plt.figure(1)
+    fig1.suptitle("Feature Figure 1")
+    fig2 = plt.figure(2)
+    fig2.suptitle("Feature Figure 2")
+    fig3 = plt.figure(3)
+    fig3.suptitle("Feature Figure 3")
 
-    # Figure 2: Intensity vs Entropy
-    plt.figure(2)
-    plt.scatter(x=walk_feats["Intensity"],
-                y=walk_feats["Periodicity"],
-                c="blue",
-                label="Walk")
-    plt.scatter(x=non_walk_feats["Intensity"],
-                y=non_walk_feats["Periodicity"],
-                c="red",
-                label="Non-walk")
-    plt.xlabel("Intensity")
-    plt.ylabel("Entropy")
-    plt.legend()
+    # Axes 1
+    ax1 = fig1.add_subplot(111)
+    ax1.set_xlabel("Frequency[Hz]")
+    ax1.set_ylabel("Intensity")
+    ax1.set_title("Dominant Frequency vs Dominant Intensity")
 
-    # Figure 3: DomFreq vs Entropy
-    plt.figure(3)
-    plt.scatter(x=walk_feats["DomFreq"],
-                y=walk_feats["Periodicity"],
-                c="blue",
-                label="Walk")
-    plt.scatter(x=non_walk_feats["DomFreq"],
-                y=non_walk_feats["Periodicity"],
-                c="red",
-                label="Non-walk")
-    plt.xlabel("Dominant Frequency[Hz]")
-    plt.ylabel("Entropy")
-    plt.legend()
+    # Axes 2
+    ax2 = fig2.add_subplot(111)
+    ax2.set_xlabel("Intensity")
+    ax2.set_ylabel("Periodicity")
+    ax2.set_title("Dominant Intensity vs Periodicity")
+
+    # Axes 3
+    ax3 = fig3.add_subplot(111)
+    ax3.set_xlabel("Frequency[Hz]")
+    ax3.set_ylabel("Periodicity")
+    ax3.set_title("Dominant Frequency vs Periodicity")
+
+
+    for label_val in label_vals:
+        subset_df = features[features['Label'] == label_val]
+        # Figure 1 DomFreq v Intensity
+        ax1.scatter(x=subset_df["DomFreq"],
+                    y=subset_df["Intensity"],
+                    label=label_val)
+        
+        # Figure 2 Intensity vs Entropy
+        ax2.scatter(x=subset_df["Intensity"],
+                    y=subset_df["Periodicity"],
+                    label=label_val)
+
+        # Figure 3 DomFreq vs Entropy
+        ax3.scatter(x=subset_df["DomFreq"],
+                    y=subset_df["Periodicity"],
+                    label=label_val)
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
     
-    if (plot_3D):
-        fig = plt.figure(4)
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(xs=walk_feats['DomFreq'],
-                   ys=walk_feats['Intensity'],
-                   zs=walk_feats['Periodicity'],
-                   c="blue",
-                   label="Walk")
-        ax.scatter(xs=non_walk_feats['DomFreq'],
-                   ys=non_walk_feats['Intensity'],
-                   zs=non_walk_feats['Periodicity'],
-                   c="red",
-                   label="Non-walk")
-        ax.set_xlabel("Dominant Frequency[Hz]")
-        ax.set_ylabel("Intensity")
-        ax.set_zlabel("Periodicity")
-        ax.legend()
+    if (plot3D):
+        fig4 = plt.figure(4)
+        fig4.suptitle("Activity Feature Space")
+        ax4 = fig4.add_subplot(111, projection='3d')
+        for label_val in label_vals:
+            subset_df = features[features['Label'] == label_val]
+            ax4.scatter(xs=subset_df["DomFreq"],
+                        ys=subset_df["Intensity"],
+                        zs=subset_df["Periodicity"],
+                        label=label_val)
+
+        ax4.set_xlabel("Frequency[Hz]")
+        ax4.set_ylabel("Intensity")
+        ax4.set_zlabel("Periodicity")
+        ax4.legend()
 
     plt.show()
 
