@@ -32,11 +32,6 @@ def train_knn_model(data_directory, plot_feat=False, plot_result=False, **model_
     # Get Features
     features = build_training_set(data_directory, plot_feat)
 
-    # Pull out readable labels
-    human_labels = features["Label"].unique()
-    labels_dict = {human_labels[i]:i for i in range(len(human_labels))}
-    features["Label"].replace(labels_dict)
-
     # Train models
     train_data, test_data = train_test_split(features, test_size=0.9, random_state=42)
     train_labels = train_data["Label"]
@@ -45,11 +40,11 @@ def train_knn_model(data_directory, plot_feat=False, plot_result=False, **model_
     test_data = test_data.drop(["Label"], axis=1)
 
 
-    knn_model = knnC(n_neighbors=3)
-    knn_model.fit(train_data, train_labels)
-    knn_predict = knn_model.predict(test_data)
-    knn_accuracy = accuracy_score(np.array(test_labels), np.array(knn_predict))
-    print(f"KNN Accuracy: {knn_accuracy}")
+    # knn_model = knnC(n_neighbors=3)
+    # knn_model.fit(train_data, train_labels)
+    # knn_predict = knn_model.predict(test_data)
+    # knn_accuracy = accuracy_score(np.array(test_labels), np.array(knn_predict))
+    # print(f"KNN Accuracy: {knn_accuracy}")
 
     # Plot results
     if (plot_result):
