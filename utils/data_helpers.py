@@ -4,6 +4,7 @@ Collection of functions to help massage/manipulate data
 """
 
 # Project import
+from curses.ascii import DEL
 from .parser_fcns import parse_mt_file
 
 # Python import
@@ -57,27 +58,29 @@ def apply_zero_phase_filter(data, fs, filter_order, filter_type, cutoff_freq):
 
 
 def build_training_set(data_directory, plot_feat=False):
-    # Read files
-    data_files = [f for f in os.listdir(data_directory) \
-        if os.path.isfile(os.path.join(data_directory, f))]
-
     # Parse files
-    samples, labels, fss = fill_samples(data_directory, data_files)
+    samples, labels, rates = fill_samples(data_directory)
 
     # Extract features
     feature_sets = []
-    for sample, label, fs in zip(samples, labels, fss):
-        feature_sets.append(extract_feat(sample, label, fs=fs))
-    
+    labels_dict = {}
+    labels_idx = 0
+    for sample, label, fs in zip(samples, labels, rates):
+        if label not in labels_dict:
+            labels_dict[label] = labels_idx
+            labels_idx += 1
+        feature_sets.append(extract_feat(sample, label, labels_dict[label], fs=fs))
+
+    features = pd.concat(feature_sets)
+
     # Plot features
     if (plot_feat):
         pass
 
-    features = pd.concat(feature_sets)
     return features
 
 
-def extract_feat(samples, label, fs=100, entropy=True):
+def extract_feat(samples, label, enum_label, fs=100, entropy=True):
     """
     Given samples, return a labeled training set with features. 
     The feature used are dominant frequency, intensity at dominant freq, and 
@@ -86,6 +89,7 @@ def extract_feat(samples, label, fs=100, entropy=True):
     Args:
         list of np.arrays samples - list of activity data chunks
         literal label - label of the data.
+        int enum_label - numerical representation of the label 
         int fs - sampling frequency of the data 
         bool entropy - defaulted True; if true, uses the entropy of the 
             freq domain to measure periodic characteristic. False results
@@ -96,6 +100,7 @@ def extract_feat(samples, label, fs=100, entropy=True):
     """
     rtn_dict = {"DomFreq":[], "Intensity":[], "Periodicity":[]}
     rtn_dict["Label"] = [label]*len(samples)
+    rtn_dict["Enum_Label"] = [enum_label]*len(samples)
     for sample in samples:
         nPts = len(sample)
         f, Pxx = signal.welch(sample, fs, nperseg=nPts)
@@ -115,10 +120,16 @@ def extract_feat(samples, label, fs=100, entropy=True):
     return feat_df
 
 
-def fill_samples(dir, files):
+def fill_samples(dir):
     samples = []
-    for file in files:
+    labels = []
+    rates = []
+    # Read files
+    data_files = [f for f in os.listdir(dir) \
+        if os.path.isfile(os.path.join(dir, f))]
+    for file in data_files:
         if re.match(r"\AMT", file):
+            print(f"Dir: {os.path.join(dir, file)}")
             data_dict = parse_mt_file(os.path.join(dir,file))
         #TODO: Add other parsers
         # elif re.match(r"\ASIM", filename):
@@ -127,8 +138,10 @@ def fill_samples(dir, files):
         #     data_dict = parse_imu_file(file)
         else:
             raise Exception("Invalid File Format found")
-        samples = shred_data(data_dict, samples=samples)
-    return samples
+        samples.append(shred_data(data_dict))
+        labels.append(str.lower(data_dict['Action']))
+        rates.append(data_dict['SampleRate'])
+    return samples, labels, rates
 
 
 def plot_features(walk_feats, non_walk_feats, plot_3D=True):
