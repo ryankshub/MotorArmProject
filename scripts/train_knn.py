@@ -82,7 +82,7 @@ def train_knn_model(data_directory, k, plot_feat=False, plot_result=False):
 def plot_knn_model(model, accuracy, label_matrix):
     # Make Label bar graph
     bar_fig = plt.figure(1)
-    bar_fig.suptitle("Precision and Recall for each class", fontsize=28)
+    bar_fig.suptitle("Precision and Recall for each class", fontsize=24)
     bar_ax = bar_fig.add_subplot(111)
     labels = []
     precisions = []
@@ -100,25 +100,29 @@ def plot_knn_model(model, accuracy, label_matrix):
     x_axis = np.arange(len(labels))
     width = 0.2
     # Format Bar Graph
-    bar_ax.bar(x=x_axis-width/2, height=precisions, width=width, label="precision")
-    bar_ax.bar(x=x_axis+width/2, height=recalls, width=width, label="recall")
+    pbar = bar_ax.bar(x=x_axis-width/2, height=precisions, width=width, label="precision")
+    rbar = bar_ax.bar(x=x_axis+width/2, height=recalls, width=width, label="recall")
 
     bar_ax.set_xticks(x_axis)
-    bar_ax.set_xticklabels(labels, fontdict={"fontsize": 24})
-    bar_ax.set_title(f"KNN w/k={model.n_neighbors} and Acc:{accuracy}", 
-                     fontsize=24)
-    bar_ax.legend(fontsize=14)
+    bar_ax.set_xticklabels(labels, fontdict={"fontsize": 20})
+    bar_ax.set_title(f"KNN w/k={model.n_neighbors} and Acc:{accuracy:.2f}", 
+                     fontsize=20)
+    bar_ax.legend(fontsize=12)
 
+    bar_ax.bar_label(pbar, fmt='%.2f')
+    bar_ax.bar_label(rbar, fmt='%.2f')
     bar_fig.tight_layout()
+
     plt.show()
 
 
 # Saving Fcn
-def save_knn_model(knn_meta, save_dir=None, filename=None):
+def save_knn_model(knn_meta, filename=None):
     if filename is None:
         filename = f"KNN_{str(datetime.datetime.today()).replace(' ','_')}.joblib"
-    if save_dir is None:
-        save_dir = os.path.join(ROOT_PATH, f"models/{filename}")
+    else:
+        filename += ".joblib"
+    save_dir = os.path.join(ROOT_PATH, f"models/{filename}")
     joblib.dump(knn_meta, save_dir)
 
 
@@ -128,10 +132,14 @@ if __name__ == "__main__":
     parser.add_argument('-k', type=int, default=3, help="")
     parser.add_argument("--plot_feats", "-f", action='store_true', help="")
     parser.add_argument("--plot_result", "-r", action='store_true', help="")
+    parser.add_argument("--save_model","-s", action='store_true', help="")
+    parser.add_argument("--model_name", "-n", type=str, help="")
 
     args = parser.parse_args()
 
     # Train model
     knn_data = train_knn_model(args.data_dir, args.k, args.plot_feats, args.plot_result)
     # Save model
+    if (args.save_model):
+        save_knn_model(knn_data, args.model_name)
     
