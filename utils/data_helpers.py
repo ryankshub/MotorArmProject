@@ -144,7 +144,29 @@ def fill_samples(dir):
     return samples, labels, rates
 
 
-def get_prec_and_recall(confusion_matrix, labels=None):
+def get_prec_and_recall(label_matrix, labels):
+    metric_dict = {}
+    elems_predicted = label_matrix.sum(0)
+    elems_totals = label_matrix.sum(1)
+
+    for i in range(len(labels)):
+        precision = 0
+        recall = 0
+        true_pos = label_matrix[i][i]
+        elems_found = elems_predicted[i]
+        elem_total = elems_totals[i]
+
+        if elem_total == 0:
+            metric_dict[labels[i]] = (0,0,False)
+            continue
+        if elems_found > 0:
+            precision = true_pos/elems_found
+        if elem_total > 0:
+            recall = true_pos/elem_total
+
+        metric_dict[labels[i]] = (precision, recall, True)
+    
+    return metric_dict
     # Scraps
     # for i in range(len(labels)): 
     #     true_positives = ani_mat[i][i] 
@@ -160,7 +182,6 @@ def get_prec_and_recall(confusion_matrix, labels=None):
     #         recall.append(true_pos/total_rev) 
     #     else: 
     #         recall.append(0) 
-    pass
 
 def plot_features(features, plot3D=True):
     label_vals = features["Label"].unique()
