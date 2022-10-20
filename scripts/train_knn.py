@@ -4,7 +4,7 @@
 
 #Python imports
 import argparse
-from curses import meta
+import datetime
 import joblib
 import os
 import sys
@@ -15,7 +15,7 @@ ROOT_PATH = os.path.join(FILE_PATH, '..')
 sys.path.append(ROOT_PATH)
 
 # Project Import
-from utils import build_training_set, get_prec_and_recall
+from utils import build_training_set, get_prec_and_recall, x_version
 # plot_features
 
 # 3rd-party Import
@@ -38,9 +38,9 @@ def train_knn_model(data_directory, k, plot_feat=False, plot_result=False):
     # Build Training and Test Data
     train_data, test_data = train_test_split(features, test_size=0.2, random_state=42)
     train_labels = train_data["Label"]
-    train_data = train_data.drop(["Label"], axis=1)
+    train_data = train_data.drop(["Label", "EnumLabel"], axis=1)
     test_labels = test_data["Label"]
-    test_data = test_data.drop(["Label"], axis=1)
+    test_data = test_data.drop(["Label","EnumLabel"], axis=1)
 
     # Train Model
     knn_model = KNeighborsClassifier(n_neighbors=k)
@@ -53,19 +53,36 @@ def train_knn_model(data_directory, k, plot_feat=False, plot_result=False):
     labels = features["Label"].unique()
     knn_confuse_matrix = confusion_matrix(test_labels, knn_predict, labels=labels)
     label_matrix = get_prec_and_recall(knn_confuse_matrix, labels=labels)
-
+    print(f"Confusion Matrix: {knn_confuse_matrix}")
+    print(f"Precision/Recall: {label_matrix}")
     # Plot results
     if (plot_result):
         plot_knn_model(knn_model, knn_accuracy, label_matrix)
     
-    return knn_model, knn_accuracy, features
+    # Craft model_data
+    knn_metrics = {"accuracy":knn_accuracy}
+
+    knn_metadata = {"features":features, 
+                    "date":str(datetime.datetime.today()),
+                    "version": x_version()}
+
+    knn_modeldata = {"model":knn_model,
+                    "classifier":"sklearn.neighbors.KNeighborClassifier"}
+    
+    knn_dict = {"modeldata":knn_modeldata,
+                "metrics":knn_metrics,
+                "metadata":knn_metadata}
+
+    print("KNN DICT")
+    print(knn_dict)
+    return knn_dict
 
 
 # Plotting Fcn
 def plot_knn_model(model, accuracy, label_matrix):
     # Make Label bar graph
     bar_fig = plt.figure(1)
-    bar_fig.suptitle("Precision and Recall for each class")
+    bar_fig.suptitle("Precision and Recall for each class", fontsize=28)
     bar_ax = bar_fig.add_subplot(111)
     labels = []
     precisions = []
@@ -81,23 +98,28 @@ def plot_knn_model(model, accuracy, label_matrix):
             recalls.append(recall)
     
     x_axis = np.arange(len(labels))
+    width = 0.2
+    # Format Bar Graph
+    bar_ax.bar(x=x_axis-width/2, height=precisions, width=width, label="precision")
+    bar_ax.bar(x=x_axis+width/2, height=recalls, width=width, label="recall")
 
-    bar_ax.bar(x=x_axis-0.2, height=precisions, width=0.4, label="precision")
-    bar_ax.bar(x=x_axis+0.2, height=recalls, width=0.4, label="recall")
-    bar_ax.set_xlabel("Activities")
-    bar_ax.set_xticks(labels)
-    bar_ax.set_title(f"KNN w/k={model.n_neighbor} and Acc:{accuracy}")
-    bar_ax.legend()
+    bar_ax.set_xticks(x_axis)
+    bar_ax.set_xticklabels(labels, fontdict={"fontsize": 24})
+    bar_ax.set_title(f"KNN w/k={model.n_neighbors} and Acc:{accuracy}", 
+                     fontsize=24)
+    bar_ax.legend(fontsize=14)
+
+    bar_fig.tight_layout()
     plt.show()
 
 
 # Saving Fcn
-def save_knn_model(metadata, save_dir=None, filename=None):
+def save_knn_model(knn_meta, save_dir=None, filename=None):
     if filename is None:
-        filename = "KNN.joblib"
+        filename = f"KNN_{str(datetime.datetime.today()).replace(' ','_')}.joblib"
     if save_dir is None:
         save_dir = os.path.join(ROOT_PATH, f"models/{filename}")
-    joblib.dump(metadata, save_dir)
+    joblib.dump(knn_meta, save_dir)
 
 
 if __name__ == "__main__":
@@ -110,6 +132,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Train model
-    model = train_knn_model(args.data_dir, args.k, args.plot_feats, args.plot_result)
+    knn_data = train_knn_model(args.data_dir, args.k, args.plot_feats, args.plot_result)
     # Save model
     

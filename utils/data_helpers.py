@@ -100,7 +100,7 @@ def extract_feat(samples, label, enum_label, fs=100, entropy=True):
     """
     rtn_dict = {"DomFreq":[], "Intensity":[], "Periodicity":[]}
     rtn_dict["Label"] = [label]*len(samples)
-    rtn_dict["Enum_Label"] = [enum_label]*len(samples)
+    rtn_dict["EnumLabel"] = [enum_label]*len(samples)
     for sample in samples:
         nPts = len(sample)
         f, Pxx = signal.welch(sample, fs, nperseg=nPts)
@@ -157,7 +157,7 @@ def get_prec_and_recall(label_matrix, labels):
         elem_total = elems_totals[i]
 
         if elem_total == 0:
-            metric_dict[labels[i]] = (0,0,False)
+            metric_dict[labels[i]] = (0.0,0.0,False)
             continue
         if elems_found > 0:
             precision = true_pos/elems_found
@@ -167,21 +167,7 @@ def get_prec_and_recall(label_matrix, labels):
         metric_dict[labels[i]] = (precision, recall, True)
     
     return metric_dict
-    # Scraps
-    # for i in range(len(labels)): 
-    #     true_positives = ani_mat[i][i] 
-    #     all_positives = elem_predict[i] 
-    #     if all_positives > 0: 
-    #         precision.append(true_positives/all_positives) 
-    #     else: 
-    #         precision.append(0)
-    # for i in range(len(labels)): 
-    #     true_pos = ani_mat[i][i] 
-    #     total_rev = elem_recall[i] 
-    #     if total_rev > 0: 
-    #         recall.append(true_pos/total_rev) 
-    #     else: 
-    #         recall.append(0) 
+
 
 def plot_features(features, plot3D=True):
     label_vals = features["Label"].unique()
