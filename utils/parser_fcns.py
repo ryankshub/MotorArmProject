@@ -23,8 +23,17 @@ def parse_mt_file(filepath, ACTION_LINE = 4, RATE_LINE = 5):
             has the sample rate (in Hz) of the data collected.
     
     Return:
-        dict of 7 arrays with 'Time_s', 'AccX', 'AccY', 'AccZ', 
-            'FreeAccX', 'FreeAccY', and 'FreeAccZ'
+        dict with the following:
+            'Time_s': timestamp array in seconds
+            'AccX': Array of accelerations along the X-axis(this typically points forward) in m/s/s
+            'AccY': Array of accelerations along the Y-axis(this typically point downward) in m/s/s
+            'AccZ': Array of accelerations along the Z-axis(this typically points leftward) in m/s/s
+            'AccM': Array of magnitude acceleration
+            'FreeAccX': Same as 'AccX' without the effect of gravity
+            'FreeAccY': Same as 'AccY' without the effect of gravity
+            'FreeAccZ': Same as 'AccZ' without the effect of gravity
+            'Action': Activity being logged (eg 'walking', 'squating', etc)
+            'SampleRate': Rate of data collection[in Hz]
     """
     df = pd.read_csv(filepath, skiprows=6)
     # Output data rate is 100Hz or 0.01s between samples
@@ -40,6 +49,53 @@ def parse_mt_file(filepath, ACTION_LINE = 4, RATE_LINE = 5):
                'FreeAccX': df['FreeAcc_X'].values,
                'FreeAccY': df['FreeAcc_Y'].values,
                'FreeAccZ': df['FreeAcc_Z'].values}
+
+    with open(filepath) as fp:
+        for i, line in enumerate(fp):
+            action_found = False
+            rate_found = False
+            if i == ACTION_LINE:
+                rtn_dic['Action'] = line.split(',')[1]
+                action_found = True
+            elif i == RATE_LINE:
+                rtn_dic['SampleRate'] = int(line.split(',')[1])
+                rate_found = True
+            if (action_found and rate_found):
+                break
+
+    return rtn_dic
+
+
+def parse_simple_file(filepath, ACTION_LINE = 2, RATE_LINE = 3):
+    """
+    Parse a data file formated in a simple format for 3rd-party files
+
+    Args:
+        string - filepath: filepath to MT .txt file
+        int - ACTION_LINE: A const value to represent which fileline
+            has the action being performed
+        int - RATE_LINE: A const value representing which fileline
+            has the sample rate (in Hz) of the data collected.
+    
+    Return:
+        dict with the following:
+            'Time_s': timestamp array in seconds
+            'AccX': Array of accelerations along the X-axis(this typically points forward) in m/s/s
+            'AccY': Array of accelerations along the Y-axis(this typically point downward) in m/s/s
+            'AccZ': Array of accelerations along the Z-axis(this typically points leftward) in m/s/s
+            'AccM': Array of magnitude acceleration
+            'Action': Activity being logged (eg 'walking', 'squating', etc)
+            'SampleRate': Rate of data collection[in Hz]
+    """
+    df = pd.read_csv(filepath, skiprows=4)
+
+    df['AccM'] = [np.sqrt(np.power(df['AccX'][i], 2) + np.power(df['AccY'][i], 2) + np.power(df['AccZ'][i], 2))
+                    for i in range(len(df['AccX']))]
+    rtn_dic = {'Time_s': df['Time'].values,
+               'AccX': df['AccX'].values,
+               'AccY': df['AccY'].values,
+               'AccZ': df['AccZ'].values,
+               'AccM': df['AccM'].values}
 
     with open(filepath) as fp:
         for i, line in enumerate(fp):
