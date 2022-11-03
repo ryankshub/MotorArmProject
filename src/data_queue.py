@@ -156,4 +156,4 @@ class DataQueue():
         Given a number of seconds, return latest element in that duration
         """
         num = self._convert_time_to_num(time_s)
-        return get_entries(num)
+        return self.get_entries(num)
