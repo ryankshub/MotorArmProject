@@ -22,63 +22,77 @@ class ClassifierSM:
         """
         """
         # Set 'public' members
-        self.modeldata = joblib.load(modelfile)
+        self.load_model(modelfile)
         # TODO Model Validation
 
-        if threshold > 0 and threshold <= 1:
-            self.threshold = threshold
+        # Set up threshold
+        self._threshold = threshold
         self.time_window = time_window
 
         # Set 'private' members
         self._STATE = "unknown"
 
+
     # Class member properties
+    @property
+    def classifier_name(self):
+        """
+        """
+        return self._modeldata['modeldata']['classifier']
+
+
     @property
     def STATE(self):
         """
         """
         return self._STATE
 
+
+    @property
+    def model_metadata(self):
+        """
+        """
+        return self._modeldata['metrics']
+
+
+    @property
+    def model_metrics(self):
+        """
+        """
+        return self._modeldata['metrics']
+
+
     @property
     def threshold(self):
         """
         """
-        return self.threshold
+        return self._threshold
 
     @threshold.setter
     def threshold(self, value):
         """
         """
         if value > 0 and value <= 1:
-            self.threshold = value
-        else:
-            warnings.warn("Threshold must be a value in range (0,1]; \
-                          new value is rejected.",
+            self._threshold = value
+        elif value > 1:
+            self._threshold = .95
+            warnings.warn(f"Threshold must be a value in range (0,1]; \
+                          {value} is too high; using .95.",
                           RuntimeWarning)
+        else:
+            self._threshold = 0
+            warnings.warn(f"Threshold must be a value in range (0,1]; \
+                          {value} is too low; using 0",
+                          RuntimeWarning)
+    
     
     # Classifier FCNs
     def load_model(self, modelfile):
         """
         """
-        self.modeldata = joblib(modelfile)
-
-
-    def get_model_metrics(self):
-        """
-        """
-        return self.modeldata['metrics']
-
-
-    def get_model_metadata(self):
-        """
-        """
-        return self.modeldata['metadata']
-
-
-    def get_model_classifier(self):
-        """
-        """
-        return self.modeldata['modeldata']['classifier']
+        self._modeldata = joblib.load(modelfile)
+        self._model = self._modeldata['modeldata']['model']
+        self._lables = self._model.classes_
 
 
     def predict(self, data, sample_rate=100):
@@ -97,9 +111,12 @@ class ClassifierSM:
         feat_df = pd.DataFrame(feat_dict)
 
         # Predict
-        main_model = self.modeldata['modeldata']['model']
-        probs = main_model.predict_prob(feat_df)
+        probs = self._model.predict_prob(feat_df)[0]
+        idx = np.argmax(probs)
+        if probs[idx] > self._threshold:
+            self._STATE = self._lables[idx]
+        else:
+            self._STATE = "unknown"
 
-        # Threshold and return
-        #TODO
+        return self._STATE
         

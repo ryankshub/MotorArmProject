@@ -4,7 +4,6 @@ Collection of functions to help massage/manipulate data
 """
 
 # Project import
-from curses.ascii import DEL
 from .parser_fcns import parse_mt_file
 
 # Python import
