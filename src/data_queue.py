@@ -18,12 +18,12 @@ class DataQueue():
     FIFO-Queue with ability to return a number of entries based 
     on time window
     """
-    def __init__(self, rate_Hz=100, time_limit_s=3, data=None):
+    def __init__(self, data_rate_Hz=100, time_window_s=3, data=None):
         """
         DataQueue Constructor
 
         Args:
-            int rate_Hz - frequency of the incoming data; default 100Hz
+            int data_rate_Hz - frequency of the incoming data; default 100Hz
             float time_limit_s - Duration of data (in seconds) held be queue
                 default 3 seconds
             list data - Initial array; default None
@@ -32,13 +32,13 @@ class DataQueue():
                 large, only the latest 'time_limit_s' duration will be saved
         """
         # Set constants
-        self._RATE_HZ = rate_Hz
+        self._RATE_HZ = data_rate_Hz
 
         # Set 'public' members
-        self.time_limit = time_limit_s
+        self.time_limit = time_window_s
 
         # Set 'private' members
-        self._size = int(np.ceil( time_limit_s / (1 / self._RATE_HZ) ))
+        self._size = int(np.ceil( time_window_s / (1 / self._RATE_HZ) ))
         if data:
             self._queue = deque(data, maxlen=self._size)
         else:

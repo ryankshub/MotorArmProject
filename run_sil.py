@@ -4,30 +4,33 @@ Runs Software-in-the-loop simulation with application
 """
 
 # Project import
-from src import CadenceTracker, TrajectoryLookUp
+from src import CadenceTracker, ClassiferSM, DataQueue, TrajectoryLookUp
 from utils import parse_mt_file
 # Python import
 import argparse
 import os
-import time
 # 3rd-party import
 from matplotlib import pyplot as plt
-import numpy as np
-import pandas as pd
 
-def sil_main(datafile, graph_title, operation_freq=100, time_window_s=4):
-    #TODO Fix this for SIL operation
-    print(f"Data file: {datafile}")
-    # Parse data file
-    filepath = os.path.join('data',datafile)
-    data_dict = parse_mt_file(filepath)
 
-    # Get time and data measurement
-    time_steps = data_dict["Time_s"]
-    accel_measures = data_dict["AccM"]
+def sil_main(datafile, graph_title, **kwargs):
+    # Parse Args
+    data_rate = kwargs.get('data_rate', 100) #Rate of IMU(Hz)
+    dq_window = kwargs.get('dq_window', 4) # time window of data queue
 
-    # Create Cadence Tracker
-    CT = CadenceTracker(freq_Hz=operation_freq, time_window_s=time_window_s, method='indirect')
+    csm_modelfile = kwargs['modelfile'] # filepath to classifier model
+    csm_threshold = kwargs.get('threshold', .8) # threshold for accepting prediction
+    csm_window = kwargs.get('csm_window', 3.5) # time window of classifier wrapper
+
+    ct_window = kwargs.get('ct_window', 3.5) # time window of cadence tracker
+    ct_method = kwargs.get('ct_method', 'indirect')
+
+    # Make Objects
+    DQ = DataQueue(data_rate_Hz=data_rate, time_window=dq_window)
+    ClassSM = ClassiferSM(csm_modelfile, threshold=csm_threshold, 
+        time_window=csm_window)
+    CT = CadenceTracker(data_rate_Hz=data_rate, time_window_s=ct_window,
+        method=ct_method)
 
     # Create Trajectory Look-Up
     profiles = {0.8: 'data/template_data/08ms.csv',
@@ -37,11 +40,18 @@ def sil_main(datafile, graph_title, operation_freq=100, time_window_s=4):
                 1.2: 'data/template_data/12ms.csv',
                 1.3: 'data/template_data/13ms.csv',
                 1.4: 'data/template_data/14ms.csv'}
+    TLU = TrajectoryLookUp(profiles=profiles)
 
-    traj_dict = TrajectoryLookUp(profiles=profiles)
-    
+    # Parse data file
+    print(f"Data file: {datafile}")
+    filepath = os.path.join('data',datafile)
+    data_dict = parse_mt_file(filepath)
+
+    # Get time and data measurement
+    time_steps = data_dict["Time_s"]
+    accel_measures = data_dict["AccM"]
+
     #Execution Loop
-    traj_dict.angle = 0.0
     log_angle = []
     log_target = []
     log_steps = []
@@ -51,26 +61,10 @@ def sil_main(datafile, graph_title, operation_freq=100, time_window_s=4):
         log_time.append(i)
         #Get measurements
         accel_measure = accel_measures[i]
-        encoder_measure = odrv0.axis0.encoder.pos_estimate
+        print(accel_measure)
 
-        # Apply measurements to cadence tracker
-        CT.add_measurement(accel_measure)
-        traj_dict.angle = encoder_measure
-        # Pass cadence to trajectory look-up
-        steps = CT.calculate_cadence()
-        log_steps.append(steps)
-        if (steps > 0): # Presume walking
-            pos_setpoint = traj_dict.get_pos_setpoint(steps, time_window_s)
-            log_angle.append(pos_setpoint)
-            log_speeds.append(traj_dict._fast_speed)
-            print(f"Slow speed: {traj_dict._slow_speed}, Fast speed: {traj_dict._fast_speed}")
-            odrv0.axis0.controller.input_pos = pos_setpoint        
-            #traj_dict.angle = pos_setpoint ### TODO: REMOVE; JUST FOR DEBUGGING
-        else:
-            log_angle.append(traj_dict.angle)
-            log_speeds.append(0)
 
-    plot_sil_results(graph_title, log_time, log_angle, log_target, log_steps, log_speeds)
+
     return 0
 
 
