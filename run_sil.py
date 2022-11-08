@@ -9,12 +9,15 @@ from utils import parse_mt_file
 # Python import
 import argparse
 import os
-import warnings
 # 3rd-party import
 from matplotlib import pyplot as plt
+import numpy as np
+import serial
 
 
-def sil_main(datafile, graph_title, params):
+def object_setup(params):
+    """
+    """
     # Parse Args
     data_rate = params.get('data_rate', 100) #Rate of IMU(Hz)
     dq_window = params.get('dq_window', 4) # time window of data queue
@@ -43,6 +46,34 @@ def sil_main(datafile, graph_title, params):
                 1.4: 'data/template_data/14ms.csv'}
     TLU = TrajectoryLookUp(profiles=profiles)
 
+    return DQ, ClassSM, CT, TLU
+
+
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU):
+    """
+    """
+    DQ.append(accel_measure)
+    datum = DQ.get_latest_entries(CT.TIME_WINDOW)
+    if datum is not None:
+        ClassSM.predict(datum, data_rate)
+        if ClassSM.STATE == 'walking':
+            CT.walking = True
+        else:
+            CT.walking = False
+        CT.update_cadence(datum)
+        tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
+        return tgt_angle
+    else:
+        return TLU.angle
+
+
+def sil_main(datafile, graph_title, params):
+    # Set objects
+    DQ, ClassSM, CT, TLU = object_setup(params)
+
+    # Get input rate
+    data_rate = params.get('data_rate', 100)
+
     # Parse data file
     print(f"Data file: {datafile}")
     #filepath = os.path.join('data',datafile)
@@ -63,19 +94,33 @@ def sil_main(datafile, graph_title, params):
         #Get measurements
         accel_measure = accel_measures[i]
         print(accel_measure)
-        DQ.append(accel_measure)
-        datum = DQ.get_latest_entries(CT.TIME_WINDOW)
-        if datum is not None:
-            ClassSM.predict(datum, data_rate)
-            if ClassSM.STATE == 'walking':
-                CT.walking = True
-            else:
-                CT.walking = False
-            CT.update_cadence(datum)
-            tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
-            # TODO Add simple noise model to represent encoder precision
-            TLU.angle = tgt_angle
-            print(f"angle {tgt_angle}")
+        tgt_angle = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU)
+        # TODO Add simple noise model to represent encoder precision
+        TLU.angle = tgt_angle
+        print(f"angle {tgt_angle}")
+    return 0
+
+
+def live_sil_main(port, params, baudrate=115200):
+    # Set objects
+    DQ, ClassSM, CT, TLU = object_setup(params)
+
+    # Get input rate
+    data_rate = params.get('data_rate', 100)
+
+    # Set up serial port
+    ser = serial.Serial(port, baudrate)
+
+    # Read IMU
+    alive = True
+    while(alive):
+        data_read = ser.read_until(b'\n')
+        ax, ay, az, _, _, _ = data_read
+        accel_measure = np.sqrt( np.sum( np.power([ax, ay, az], 2) ) )
+        tgt_angle = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU)
+        # TODO Add simple noise model to represent encoder precision
+        TLU.angle = tgt_angle
+    
     return 0
 
 
