@@ -40,6 +40,7 @@ class TrajectoryLookUp():
 
         # Parameters
         self._EPSILON = EPSILON
+        self._HOME_RATE = 0.001
         self._time_normalizer = 30
         self._angle = init_angle
         self._past_angle = init_angle
@@ -181,6 +182,15 @@ class TrajectoryLookUp():
         Rtn:
             The desired position angle(in revolutions) of the arm 
         """
+        # Check if walking
+        if steps == -1: 
+            if abs(self._angle) < .001:
+                return self._angle
+            elif self._angle < 0.0:
+                return self._angle + self._HOME_RATE
+            else:
+                return self._angle - self._HOME_RATE 
+
         # Get new speed
         est_speed = self._conv_step_speed(steps, time_window)
 

@@ -72,9 +72,10 @@ def sil_main(datafile, graph_title, params):
             else:
                 CT.walking = False
             CT.update_cadence(datum)
-            if CT.steps_per_window != -1:
-                tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
-                print(f"angle {tgt_angle}")
+            tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
+            # TODO Add simple noise model to represent encoder precision
+            TLU.angle = tgt_angle
+            print(f"angle {tgt_angle}")
     return 0
 
 
