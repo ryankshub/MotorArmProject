@@ -34,10 +34,9 @@ class DataQueue():
         # Set constants
         self._RATE_HZ = data_rate_Hz
 
-        # Set 'public' members
-        self.time_limit = time_window_s
-
         # Set 'private' members
+        self._time_limit = time_window_s
+
         self._size = int(np.ceil( time_window_s / (1 / self._RATE_HZ) ))
         if data:
             self._queue = deque(data, maxlen=self._size)
@@ -62,7 +61,7 @@ class DataQueue():
         """
         Return the current value of time_limit (sec)
         """
-        return self.time_limit
+        return self._time_limit
 
     @time_limit.setter
     def time_limit(self, value):
@@ -137,11 +136,8 @@ class DataQueue():
         if num == 0:
             return []
         # Too Large Case
-        elif num >= len(self._queue):
-            warnings.warn("Requested number of entries is larger than queue, \
-                          return whole queue", 
-                          RuntimeWarning)
-            return self._queue.copy()
+        elif num > len(self._queue):
+            return None
         # Just Right
         else:
             end_idx = num - len(self._queue)

@@ -46,11 +46,11 @@ class CadenceTracker():
             self._METHOD = method
 
         # Set up internal filter:
-        self._FILTER_B, self._FILTER_A = signal.butter(3, 2, 'lowpass', fs=self._freq_Hz)
+        self._FILTER_B, self._FILTER_A = signal.butter(3, 2, 'lowpass', fs=self._DATA_RATE_HZ)
 
         # Non-Const
         self._degree_range = (-1, -1)
-        self._step_per_window = -1
+        self._steps_per_window = -1
         self._time_to_step = -1
         
 
@@ -127,10 +127,10 @@ class CadenceTracker():
         int step_count: number of steps estimated in data
         """
         nPts = len(data)
-        f, Pxx = signal.welch(data, self._freq_Hz, nperseg=nPts)
+        f, Pxx = signal.welch(data, self._DATA_RATE_HZ, nperseg=nPts)
         max_idx = np.argmax(Pxx)
         max_freq = f[max_idx]
-        return np.ceil(self._time_window_s / (1/max_freq))
+        return np.ceil(self._TIME_WINDOW_S / (1/max_freq))
 
 
     def update_cadence(self, data):
@@ -148,7 +148,7 @@ class CadenceTracker():
                 self._steps_per_window = self.count_steps(data)
             else:
                 # Estimate using dominate frequency
-                self._step_per_window = self.estimate_steps(data)
+                self._steps_per_window = self.estimate_steps(data)
 
             ## UPDATE TIME TO NEXT STEP
             self._time_to_step = self.cal_time_to_step(data)

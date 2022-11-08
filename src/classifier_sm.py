@@ -111,7 +111,7 @@ class ClassifierSM:
         feat_df = pd.DataFrame(feat_dict)
 
         # Predict
-        probs = self._model.predict_prob(feat_df)[0]
+        probs = self._model.predict_proba(feat_df)[0]
         idx = np.argmax(probs)
         if probs[idx] > self._threshold:
             self._STATE = self._lables[idx]
