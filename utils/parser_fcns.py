@@ -6,6 +6,8 @@ Collection of parsers for the various data files in project
 # Project import
 
 # Python import
+import csv
+import datetime
 
 # 3rd-party import
 import numpy as np
@@ -111,3 +113,32 @@ def parse_simple_file(filepath, ACTION_LINE = 2, RATE_LINE = 3):
                 break
 
     return rtn_dic
+
+
+def create_simple_file(filepath, activity, sample_rate, df):
+    """
+    Create a file with a simple format. View README for more details
+
+    Args:
+        filepath (str) - where to place the new file
+        activity (str) - activity the file represents
+        sample_rate (float) - the rate the data was collected
+        df (Dataframe) - dataframe containing file data
+    """
+    date = str(datetime.datetime.now())
+    with open(filepath, mode='w') as file:
+        csvwrite = csv.writer(file, 
+                              delimiter=',', 
+                              quotechar='"', 
+                              quoting=csv.QUOTE_MINIMAL)
+        #First row data
+        csvwrite.writerow([f"//Date Created {date}"])
+        # Second row units
+        csvwrite.writerow([f"//Units: sec, m/s/s"])
+        # Thrid row activity
+        csvwrite.writerow(["Action", activity])
+        # Fourth row sample rate
+        csvwrite.writerow(["SampleRate", sample_rate])
+
+    #Append data
+    df.to_csv(filepath, mode='a', index=False)
