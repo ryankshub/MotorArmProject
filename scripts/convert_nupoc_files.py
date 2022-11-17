@@ -26,7 +26,7 @@ def convert_nupoc_file(file, action_dict, parser_args):
 
     filename = os.path.basename(file)
     fileext = os.path.splitext(filename)[1]
-    if fileext == "mat":
+    if fileext == ".mat":
         activity, df = parse_mat_file(file, waypoint_key)
     else:
         activity, df = parse_trimmed_file(file, waypoint_key, action_dict)
@@ -44,12 +44,12 @@ if __name__ == "__main__":
          or directory containing files to be converted")
     parser.add_argument("waypoint_key", type=str, help="Identify which waypoint\
          should be the focus of conversion")
-    parser.add_argument("-a, --action_path", type=str, help="filepath to action\
+    parser.add_argument("-a", "--action_path", type=str, help="filepath to action\
          key file which contains id-task key value pairs. The absence of this\
          will have the action assumed to be 'walking'")
-    parser.add_argument("-s, --sample_rate", type=float, default=120.0, help="\
+    parser.add_argument("-s", "--sample_rate", type=float, default=120.0, help="\
          Sample rate of the logged data")
-    parser.add_argument("-d, --is_dir", action="store_true", help="Use to indicate\
+    parser.add_argument("-d", "--is_dir", action="store_true", help="Use to indicate\
          if convert target is a single file or directory")
     parser.add_argument("-x", "--target_dir", type=str, help="location to place\
          newly-converted files")
@@ -61,8 +61,9 @@ if __name__ == "__main__":
     else:
         action_dict = {}
     if args.is_dir:
-        files = [f for f in os.listdir() if os.path.isfile(os.path.join(args.convert_target, f))]
+        files = [f for f in os.listdir(args.convert_target) \
+            if os.path.isfile(os.path.join(args.convert_target, f))]
         for file in files:
-            convert_nupoc_file(file, action_dict, args)
+            convert_nupoc_file(os.path.join(args.convert_target,file), action_dict, args)
     else:
         convert_nupoc_file(args.convert_target, action_dict, args)
