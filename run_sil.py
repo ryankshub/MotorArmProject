@@ -9,6 +9,7 @@ from utils import parse_mt_file
 # Python import
 import argparse
 import os
+import time
 # 3rd-party import
 from matplotlib import pyplot as plt
 import numpy as np
@@ -49,7 +50,7 @@ def object_setup(params):
     return DQ, ClassSM, CT, TLU
 
 
-def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU):
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state):
     """
     """
     DQ.append(accel_measure)
@@ -62,9 +63,13 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU):
             CT.walking = False
         CT.update_cadence(datum)
         tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
-        return tgt_angle
+        #TODO: DEBUGGING: Add GUI HOOKS
+        if (state != ClassSM.STATE):
+            print(f"STATE: {ClassSM.STATE}")
+            state = ClassSM.STATE
+        return tgt_angle, state
     else:
-        return TLU.angle
+        return TLU.angle, state
 
 
 def sil_main(datafile, graph_title, params):
@@ -113,11 +118,18 @@ def live_sil_main(port, params, baudrate=115200):
 
     # Read IMU
     alive = True
+    count = 0
+    state = 'unknown'
     while(alive):
+        count += 1
         data_read = ser.read_until(b'\n')
-        ax, ay, az, _, _, _ = data_read
-        accel_measure = np.sqrt( np.sum( np.power([ax, ay, az], 2) ) )
-        tgt_angle = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU)
+        data_read = str(data_read,'utf-8')
+        #print(data_read)
+        ax, ay, az, _, _, _ = [float(i) for i in data_read.split()] 
+        accel_measure = np.sqrt( np.sum( np.power([float(ax), float(ay), float(az)], 2) ) )
+        tgt_angle, state = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state)
+        if count == 100:
+            count = 0
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
     
@@ -163,7 +175,8 @@ def _check_threshold(arg):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run software in the loop simulation')
-    parser.add_argument('datafile', type=str, help="Log file of IMU data to test software with")
+    parser.add_argument('imu_source', type=str, help="Source of IMU data to test software with. \
+        use --port arg to specify IMU port, else use filepath to logfile")
     parser.add_argument('modelfile', type=str, help="Model file of classifier to run with")
     parser.add_argument('-g', '--title', type=str, default="SIL Results", help="Graph title of SIL Results")
     parser.add_argument('-r', '--data_rate', type=int, default=100, 
@@ -177,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--method', type=str, default='indirect', choices=['direct', 'indirect'],
         help="Choose which method for counting steps; 'direct' counts acceleration pulses \
             while 'indirect' estimates with frequency analysis")
+    parser.add_argument('-p', '--port', action='store_true', help="Port to connect to the IMU")
     
     args = parser.parse_args()
     params = {'data_rate': args.data_rate,
@@ -186,6 +200,8 @@ if __name__ == "__main__":
               'csm_window': args.window,
               'ct_window': args.window,
               'ct_method': args.method}
-
-    sil_main(args.datafile, args.title, params)
+    if args.port:
+        live_sil_main(args.imu_source, params)
+    else:
+        sil_main(args.imu_source, args.title, params)
 
