@@ -31,9 +31,14 @@ from sklearn.neighbors import KNeighborsClassifier
 
 
 # Training Fcn
-def train_knn_model(data_directory, k, plot_feat=False, plot_result=False):
+def train_knn_model(data_directory, 
+    k, 
+    plot_feat=False, 
+    plot_result=False, 
+    binary_class=False):
+
     # Get Features
-    features = build_training_set(data_directory, plot_feat)
+    features = build_training_set(data_directory, plot_feat, binary_class)
 
     # Build Training and Test Data
     train_data, test_data = train_test_split(features, test_size=0.2, random_state=42)
@@ -43,7 +48,74 @@ def train_knn_model(data_directory, k, plot_feat=False, plot_result=False):
     test_data = test_data.drop(["Label","EnumLabel"], axis=1)
 
     # Train Model
-    knn_model = KNeighborsClassifier(n_neighbors=k)
+    knn_model = KNeighborsClassifier(n_neighbors=k, weights='distance')
+    knn_model.fit(train_data, train_labels)
+
+    # Eval Model
+    knn_predict = knn_model.predict(test_data)
+    knn_accuracy = accuracy_score(np.array(test_labels), np.array(knn_predict))
+    print(f"KNN Accuracy: {knn_accuracy}")
+    labels = features["Label"].unique()
+    knn_confuse_matrix = confusion_matrix(test_labels, knn_predict, labels=labels)
+    label_matrix = get_prec_and_recall(knn_confuse_matrix, labels=labels)
+    print(f"Confusion Matrix: {knn_confuse_matrix}")
+    print(f"Precision/Recall: {label_matrix}")
+    # Plot results
+    if (plot_result):
+        plot_knn_model(knn_model, knn_accuracy, label_matrix)
+    
+    # Craft model_data
+    knn_metrics = {"accuracy":knn_accuracy}
+
+    knn_metadata = {"features":features, 
+                    "date":str(datetime.datetime.today()),
+                    "version": x_version()}
+
+    knn_modeldata = {"model":knn_model,
+                    "classifier":"sklearn.neighbors.KNeighborClassifier"}
+    
+    knn_dict = {"modeldata":knn_modeldata,
+                "metrics":knn_metrics,
+                "metadata":knn_metadata}
+
+    print("KNN DICT")
+    print(knn_dict)
+    return knn_dict
+
+
+#Explore KKN model
+def explore_knn_model(data_directory, 
+    K=20, 
+    plot_feat=False, 
+    plot_result=False, 
+    binary_class=False):
+
+    # Get Features
+    features = build_training_set(data_directory, plot_feat, binary_class)
+
+    # Build Training and Test Data
+    train_data, test_data = train_test_split(features, test_size=0.2, random_state=42)
+    train_labels = train_data["Label"]
+    train_data = train_data.drop(["Label", "EnumLabel"], axis=1)
+    test_labels = test_data["Label"]
+    test_data = test_data.drop(["Label","EnumLabel"], axis=1)
+
+    # Explore various models
+    knn_candidates = [x for x in range(1,K+1)]
+    knn_res = []
+
+    for k in knn_candidates:
+        model_cand = KNeighborsClassifier(n_neighbors=k, weights='distance')
+        model_cand.fit(train_data, train_labels)
+        cand_res = np.array(cross_val_score(model_cand, train_data, train_labels, cv=10))
+        print(f"K value: {k:02}, Mean: {cand_res.mean():.4f}, Std dev: {cand_res.std():.4f}")
+        knn_res.append(cand_res.mean())
+    
+    knn_res = np.array(knn_res)
+    chosen_k = np.argmax(knn_res) + 1
+    print(f"Chosen K: {chosen_k} with {knn_res[chosen_k-1]}")
+    # Train Model
+    knn_model = KNeighborsClassifier(n_neighbors=chosen_k)
     knn_model.fit(train_data, train_labels)
 
     # Eval Model
@@ -130,15 +202,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("data_dir", type=str, help="")
     parser.add_argument('-k', type=int, default=3, help="")
-    parser.add_argument("--plot_feats", "-f", action='store_true', help="")
-    parser.add_argument("--plot_result", "-r", action='store_true', help="")
-    parser.add_argument("--save_model","-s", action='store_true', help="")
-    parser.add_argument("--model_name", "-n", type=str, help="")
+    parser.add_argument('-e','--explore', type=int, help="")
+    parser.add_argument('-b', '--binary', action='store_true', help="")
+    parser.add_argument("-f", "--plot_feats", action='store_true', help="")
+    parser.add_argument("-r", "--plot_result", action='store_true', help="")
+    parser.add_argument("-s", "--save_model", action='store_true', help="")
+    parser.add_argument("-n", "--model_name", type=str, help="")
 
     args = parser.parse_args()
 
-    # Train model
-    knn_data = train_knn_model(args.data_dir, args.k, args.plot_feats, args.plot_result)
+    
+    if args.explore:
+        # Explore KNNs
+        knn_data = explore_knn_model(args.data_dir, 
+            args.explore, 
+            args.plot_feats, 
+            args.plot_result,
+            args.binary)
+    else:
+        # Train model
+        knn_data = train_knn_model(args.data_dir, 
+            args.k, 
+            args.plot_feats, 
+            args.plot_result,
+            args.binary)
     # Save model
     if (args.save_model):
         save_knn_model(knn_data, args.model_name)
