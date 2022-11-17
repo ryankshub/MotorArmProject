@@ -27,8 +27,10 @@ def convert_nupoc_file(file, action_dict, parser_args):
     filename = os.path.basename(file)
     fileext = os.path.splitext(filename)[1]
     if fileext == ".mat":
+        print(file)
         activity, df = parse_mat_file(file, waypoint_key)
     else:
+        print(file)
         activity, df = parse_trimmed_file(file, waypoint_key, action_dict)
     
     new_filename = make_simple_filename(activity, waypoint_key)
