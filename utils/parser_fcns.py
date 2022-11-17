@@ -73,7 +73,7 @@ def parse_simple_file(filepath, ACTION_LINE = 2, RATE_LINE = 3):
     Parse a data file formated in a simple format for 3rd-party files
 
     Args:
-        string - filepath: filepath to MT .txt file
+        string - filepath: filepath to SIM .txt file
         int - ACTION_LINE: A const value to represent which fileline
             has the action being performed
         int - RATE_LINE: A const value representing which fileline
@@ -104,10 +104,10 @@ def parse_simple_file(filepath, ACTION_LINE = 2, RATE_LINE = 3):
             action_found = False
             rate_found = False
             if i == ACTION_LINE:
-                rtn_dic['Action'] = line.split(',')[1]
+                rtn_dic['Action'] = line.rstrip().split(',')[1]
                 action_found = True
             elif i == RATE_LINE:
-                rtn_dic['SampleRate'] = int(line.split(',')[1])
+                rtn_dic['SampleRate'] = float(line.rstrip().split(',')[1])
                 rate_found = True
             if (action_found and rate_found):
                 break

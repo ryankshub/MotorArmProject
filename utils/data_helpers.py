@@ -4,7 +4,7 @@ Collection of functions to help massage/manipulate data
 """
 
 # Project import
-from .parser_fcns import parse_mt_file
+from .parser_fcns import parse_mt_file, parse_simple_file
 
 # Python import
 import os
@@ -56,7 +56,7 @@ def apply_zero_phase_filter(data, fs, filter_order, filter_type, cutoff_freq):
     return signal.filtfilt(b, a, data)
 
 
-def build_training_set(data_directory, plot_feat=False):
+def build_training_set(data_directory, plot_feat=False, binary_class=False):
     # Parse files
     samples, labels, rates = fill_samples(data_directory)
 
@@ -65,6 +65,9 @@ def build_training_set(data_directory, plot_feat=False):
     labels_dict = {}
     labels_idx = 0
     for sample, label, fs in zip(samples, labels, rates):
+        if binary_class:
+            if label != 'walking':
+                label = 'ADL'
         if label not in labels_dict:
             labels_dict[label] = labels_idx
             labels_idx += 1
@@ -130,11 +133,9 @@ def fill_samples(dir):
         if re.match(r"\AMT", file):
             print(f"Dir: {os.path.join(dir, file)}")
             data_dict = parse_mt_file(os.path.join(dir,file))
-        #TODO: Add other parsers
-        # elif re.match(r"\ASIM", filename):
-        #     data_dict = parse_simple_file(file)
-        # elif re.match(r"\AIMU", filename):
-        #     data_dict = parse_imu_file(file)
+        elif re.match(r"\ASIM", file):
+            print(f"SIM: {os.path.join(dir, file)}")
+            data_dict = parse_simple_file(os.path.join(dir,file))
         else:
             raise Exception("Invalid File Format found")
         samples.append(shred_data(data_dict))
@@ -236,7 +237,7 @@ def plot_features(features, plot3D=True):
     plt.show()
 
 
-def shred_data(data_dict, samples=None, interval=3.5, time_key="Time_s", data_key="AccM"):
+def shred_data(data_dict, samples=None, interval=3.0, time_key="Time_s", data_key="AccM"):
     """
     Convert time series data into shreds of interval length. 
     Shreds are arrays with all data within one interval of current timestep

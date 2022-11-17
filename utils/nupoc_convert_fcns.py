@@ -266,6 +266,6 @@ def make_simple_filename(activity, wp_key):
     date_str = str(datetime.datetime.now()).replace(' ', ':')
 
     # Build return str
-    rtn_str = base_str + act_str + '_' + wp_str + '_' + date_str + '.csv'
+    rtn_str = base_str + act_str + '_' + wp_str + '_' + date_str + '.txt'
 
     return rtn_str
