@@ -39,7 +39,7 @@ void init_device(void) {
 }
 
 /*
-
+ 
 */
 void read_data(float accel[3], float gyro[3]){
     uint8_t read_buf[6]; // buffer for reading values
@@ -59,6 +59,21 @@ void read_data(float accel[3], float gyro[3]){
 
     // Conver gyroscope to float
     convert_gyro(gyro, read_buf);
+}
+
+/*
+
+*/
+void read_accel_data(float accel[3]){
+    uint8_t read_buf[6]; // buffer for reading values
+
+    // Read acceleration
+    uint8_t val = ACCEL_XOUT_H;
+    i2c_write_blocking(i2c0, IMU_ADDR, &val, 1, true);
+    i2c_read_blocking(i2c0, IMU_ADDR, read_buf, 6, false);
+
+    //Convert and pipe acceleration values into input array
+    convert_accel(accel, read_buf);
 }
 
 float convert_accel(float accel[3], uint8_t read_buf[6]){

@@ -7,6 +7,13 @@ Main file for pico code
 #include "pico/binary_info.h"
 #include "i2c_m050_imu.h"
 
+bool read_accel_callback(repeating_timer_t *t) {
+    float accel_arr[3];
+    read_accel_data(accel_arr);
+    printf("%f %f %f\n", accel_arr[0], accel_arr[1], accel_arr[2]);
+    return true;
+}
+
 int main() {
     // Set up UART connection
     stdio_init_all();
@@ -17,12 +24,23 @@ int main() {
     // Init MPU6050
     init_device();
 
-    // Init array
-    float accel[3];
-    float gyro[3];
+    // Turn LED to show running
+    const uint LED_PIN = PICO_DEFAULT_LED_PIN;
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 1);
 
-    while(true){
-        read_data(accel, gyro);
-        printf("%f %f %f %f %f %f\n", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
+
+    // Create repeating timer object
+    struct repeating_timer timer;
+    add_repeating_timer_ms(-READ_RATE_MS, read_accel_callback, NULL, &timer);
+
+    while(true) {
+        //This is an infinite while for device
+        //operation
     }
+    
+    //Turn light off 
+    //If we got here, then something went wrong
+    gpio_put(LED_PIN, 0);
 }

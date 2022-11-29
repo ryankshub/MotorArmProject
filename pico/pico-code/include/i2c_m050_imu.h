@@ -37,9 +37,10 @@
 
 // Constants
 #define SAMPLE_DIV 0x4F // Divide Sample Rate by 80; 
-#define ACCEL_CONV 0.00061 // For 2+-, 9.81/16384 LSB/g
+#define ACCEL_CONV 0.000598 // For 2+-, 9.81/16384 LSB/g
 #define GYRO_CONV 0.01527 // for 500 deg/s, 65.5 LSB/deg/s
-#define BAUDRATE 76800
+#define BAUDRATE 115200
+#define READ_RATE_MS 10 // length of execution loop in milliseconds
 
 // Init I2C Hardware
 void init_i2c_hw(void);
@@ -49,6 +50,9 @@ void init_device(void);
 
 //Read Fcn
 void read_data(float accel[3], float gyro[3]);
+
+//Read Fcn for accel only
+void read_accel_data(float accel[3]);
 
 //Convert Acceleration data
 float convert_accel(float accel[3], uint8_t read_buf[6]);
