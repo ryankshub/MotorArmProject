@@ -122,8 +122,11 @@ class CadenceTracker():
         Rtn:
         int step_count: number of steps detected in data
         """
-        filtered_data = signal.lfilter(self._FILTER_B, self._FILTER_A, data)
-        peaks = signal.find_peaks(filtered_data)[0]
+        filtered_data = signal.filtfilt(self._FILTER_B, self._FILTER_A, data)
+        peak_height_threshold = np.sort(filtered_data)[-2]
+        peak_height_threshold = peak_height_threshold*.8
+        peaks, _ = signal.find_peaks(filtered_data, 
+                                     height=peak_height_threshold)
         step_count = len(peaks)
         
         if peaks[-1] > self._latest_step:
