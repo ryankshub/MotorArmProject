@@ -5,7 +5,7 @@ Runs Software-in-the-loop simulation with application
 
 # Project import
 from src import CadenceTracker, ClassifierSM, DataQueue, TrajectoryLookUp
-from utils import parse_mt_file
+from utils import animate_simple_pend, parse_mt_file, read_imu
 # Python import
 import argparse
 import os
@@ -52,17 +52,40 @@ def object_setup(params):
 
 def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count):
     """
+    Main execution loop
+
+    Args:
+        float accel_measure - incoming acceleration magnitude reading
+        float data_rate - data_rate(Hz) of incoming data
+        DataQueue DQ - main data queue holding incoming data
+        ClassifierSM ClassSM - Acitivity classifier
+        CadenceTracker CT - determines when a step has taken place and
+            tracks the cadence of the user
+        Trajectory Look-up - Look-up table of possible arm trajectories
+            the system could follow
+        TODO: Remove
+        string state - current activity being performed
+        int step_count - number of steps taken during run
     """
+    # Add latest data to queue
     DQ.append(accel_measure)
+    # Grab the latest elements from queue
     datum = DQ.get_latest_entries(CT.TIME_WINDOW)
+
     if datum is not None:
+        # Predict which activity is being performed
         ClassSM.predict(datum, data_rate)
         if ClassSM.STATE == 'walking':
             CT.walking = True
         else:
             CT.walking = False
+
+        # Update cadence
         CT.update_cadence(datum)
+
+        # Update target angle
         tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
+
         #TODO: DEBUGGING: Add GUI HOOKS
         if (state != ClassSM.STATE):
             print(f"STATE: {ClassSM.STATE}")
@@ -92,13 +115,8 @@ def sil_main(datafile, graph_title, params):
     accel_measures = data_dict["AccM"]
 
     #Execution Loop
-    log_angle = []
-    log_target = []
-    log_steps = []
-    log_time = []
-    log_speeds = []
+    angles_log = []
     for i in range(len(time_steps)):
-        log_time.append(i)
         #Get measurements
         accel_measure = accel_measures[i]
         print(accel_measure)
@@ -106,7 +124,9 @@ def sil_main(datafile, graph_title, params):
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
         print(f"angle {tgt_angle}")
-    return 0
+        angles_log.append(tgt_angle*2*np.pi)
+    
+    return angles_log, time_steps[-1]
 
 
 def live_sil_main(port, params, baudrate=115200):
@@ -119,54 +139,32 @@ def live_sil_main(port, params, baudrate=115200):
     # Set up serial port
     ser = serial.Serial(port, baudrate)
 
+    # Get time limit
+    time_limit = params.get('time_limit', 30.0)
+
     # Read IMU
-    alive = True
-    count = 0
     state = 'unknown'
     step_count = 0
-    while(alive):
-        count += 1
-        data_read = ser.read_until(b'\n')
-        data_read = str(data_read,'utf-8')
-        #print(data_read)
-        ax, ay, az, _, _, _ = [float(i) for i in data_read.split()] 
+    angles_log = []
+    infinite_loop = time_limit < 0
+    start_time = time.time()
+    while(infinite_loop | time.time() - start_time < time_limit):
+        ax, ay, az = read_imu(ser)
         accel_measure = np.sqrt( np.sum( np.power([float(ax), float(ay), float(az)], 2) ) )
         tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count)
-        if count == 100:
-            count = 0
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
+        angles_log.append(tgt_angle*2*np.pi)
     
-    return 0
-
-
-def plot_sil_results(title, times, angles, targets, steps, speeds):
-    """
-    Plot Hil results
-    """
-
-    fig, axs = plt.subplots(3, 1, sharex=True)
-    fig.suptitle(title)
-    axs[0].set_title("Target angle vs Encoder angle by Trajectory Look-Up")
-    axs[0].plot(times, targets, label="target angle", color='b')
-    axs[0].plot(times, angles, label="encoder angle", color='k')
-    #axs[0].set_xlabel("Time [sec]")
-    axs[0].set_ylabel("Target angle [rev]")
-
-    axs[1].set_title("Estimated steps taken in past time window")
-    axs[1].plot(times, steps, label="estimated steps", color="g")
-    #axs[1].set_xlabel("Time [sec]")
-    axs[1].set_ylabel("Steps")
-
-    axs[2].set_title("Estimated walking speed (based on RKS model)")
-    axs[2].plot(times, speeds, label="Target Speed", color='r')
-    axs[2].set_xlabel("Time [msec]")
-    axs[2].set_ylabel("Estimated Walking Speed [m/s]")
-
-    plt.show()
+    ser.close()
+    return angles_log
 
 
 def _check_threshold(arg):
+    """
+    Argument parsing fcn that checks if the classifier threshold is in the 
+    range (0,1]
+    """
     try:
         val = float(arg)
     except ValueError as err:
@@ -189,12 +187,15 @@ if __name__ == "__main__":
         help="How many seconds of IMU data the queue should have in memory")
     parser.add_argument('-w', '--window', type=float, default=3.5,
         help="How many seconds of data should be considered for classification and cadence tracking")
-    parser.add_argument('-t', '--threshold', type=_check_threshold, default=.8,
+    parser.add_argument('-c', '--threshold', type=_check_threshold, default=.8,
         help="Confidence threshold for classifier; must be between 0 and 1")
     parser.add_argument('-m', '--method', type=str, default='indirect', choices=['direct', 'indirect'],
         help="Choose which method for counting steps; 'direct' counts acceleration pulses \
             while 'indirect' estimates with frequency analysis")
     parser.add_argument('-p', '--port', action='store_true', help="Port to connect to the IMU")
+    parser.add_argument("-t", "--time_limit", type=float, default=30.0, 
+        help="Only applies to live run, time_limit of the run. For an endless\
+             run, set time_limit negative")
     
     args = parser.parse_args()
     params = {'data_rate': args.data_rate,
@@ -203,9 +204,17 @@ if __name__ == "__main__":
               'threshold': args.threshold,
               'csm_window': args.window,
               'ct_window': args.window,
-              'ct_method': args.method}
+              'ct_method': args.method,
+              'time_limit': args.time_limit}
+
     if args.port:
-        live_sil_main(args.imu_source, params)
+        # live operation 
+        angles_log = live_sil_main(args.imu_source, params)
+        time_limit = args.time_limit
     else:
-        sil_main(args.imu_source, args.title, params)
+        # playback from logfile
+        angles_log, time_limit = sil_main(args.imu_source, args.title, params)
+    
+    angles_log = np.array(angles_log)
+    animate_simple_pend(angles_log, 1, time_limit)
 
