@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
-
-# Collection of animation scripts
-
+"""
+Collection of animation functions
+"""
 # Project imports
 
 # Python imports

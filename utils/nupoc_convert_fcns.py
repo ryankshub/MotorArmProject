@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-# This file contains functions to convert datafile record from
-# Northwestern University Prosthetics-Orthotics Center
-
+"""
+This file contains functions to convert datafile record from
+Northwestern University Prosthetics-Orthotics Center
+"""
 # Project import
 
 
@@ -16,23 +17,18 @@ import pandas as pd
 import scipy.io
 
 
-def make_simple_filename(filepath, activity, wp_key):
+def make_simple_filename(activity, wp_key):
     """
     Create a name for new simple file. The template is:
-    SIM_[activity acronym]_[waypoint]_[data_generated].[ext]
+    SIM_[activity acronym]_[waypoint]_[data_generated].txt
 
     Args:
-        filepath (str) - filepath to logged file
         activity (str) - activity the logged represents
         wp_key (str) - waypoint of interest for simple file
 
     Rtns:
         new filename for simple file
     """
-    # Get fileext
-    filename = os.path.basename(filepath)
-    fileext = os.path.splitext(filename)[1]
-
     # Build base_str
     base_str = "SIM_"
     
@@ -47,6 +43,7 @@ def make_simple_filename(filepath, activity, wp_key):
     
     # Build Way Point str
     wp_str = ""
+    wp_key = wp_key.replace('.','_')
     for word in wp_key.split('_'):
         wp_str += word.capitalize()
     
@@ -54,7 +51,7 @@ def make_simple_filename(filepath, activity, wp_key):
     date_str = str(datetime.datetime.now()).replace(' ', ':')
 
     # Build return str
-    rtn_str = base_str + act_str + '_' + wp_str + '_' + date_str + fileext
+    rtn_str = base_str + act_str + '_' + wp_str + '_' + date_str + '.txt'
 
     return rtn_str
 
@@ -229,43 +226,3 @@ def parse_trimmed_file(filepath, wp_key, action_dict):
     subdf['AccX'], subdf['AccY'], subdf['AccZ'] = [accx_arr, accy_arr, accz_arr]
 
     return activity, subdf
-
-
-def make_simple_filename(activity, wp_key):
-    """
-    Create a name for new simple file. The template is:
-    SIM_[activity acronym]_[waypoint]_[data_generated].[ext]
-
-    Args:
-        filepath (str) - filepath to logged file
-        activity (str) - activity the logged represents
-        wp_key (str) - waypoint of interest for simple file
-
-    Rtns:
-        new filename for simple file
-    """
-    # Build base_str
-    base_str = "SIM_"
-    
-    # Build Activity str
-    boring_words = ["a", "an", "and", "the"]
-    act_str = ""
-    for word in activity.split(' '):
-        if word not in boring_words:
-            act_str += word[0].upper()
-        if len(act_str) >= 3:
-            break
-    
-    # Build Way Point str
-    wp_str = ""
-    wp_key = wp_key.replace('.','_')
-    for word in wp_key.split('_'):
-        wp_str += word.capitalize()
-    
-    # Build Date str
-    date_str = str(datetime.datetime.now()).replace(' ', ':')
-
-    # Build return str
-    rtn_str = base_str + act_str + '_' + wp_str + '_' + date_str + '.txt'
-
-    return rtn_str
