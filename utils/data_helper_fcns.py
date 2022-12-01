@@ -19,7 +19,7 @@ from scipy import signal, stats
 
 
 
-def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
+def apply_lowpass_filter(data, fs, filter_order, filter_type, cutoff_freq):
     """
     Apply butterworth filter of certain type
 
@@ -57,6 +57,10 @@ def apply_zero_phase_filter(data, fs, filter_order, filter_type, cutoff_freq):
 
 
 def build_training_set(data_directory, plot_feat=False, binary_class=False):
+    """
+    TODO
+    """
+
     # Parse files
     samples, labels, rates = fill_samples(data_directory)
 
@@ -123,6 +127,9 @@ def extract_feat(samples, label, enum_label, fs=100, entropy=True):
 
 
 def fill_samples(dir):
+    """
+    TODO
+    """
     samples = []
     labels = []
     rates = []
@@ -145,6 +152,9 @@ def fill_samples(dir):
 
 
 def get_prec_and_recall(label_matrix, labels):
+    """
+    TODO
+    """
     metric_dict = {}
     elems_predicted = label_matrix.sum(0)
     elems_totals = label_matrix.sum(1)
@@ -170,6 +180,9 @@ def get_prec_and_recall(label_matrix, labels):
 
 
 def plot_features(features, plot3D=True):
+    """
+    TODO
+    """
     label_vals = features["Label"].unique()
     # Set up Figures and Axes
     fig1 = plt.figure(1)
@@ -279,3 +292,23 @@ def shred_data(data_dict, samples=None, interval=3.0, time_key="Time_s", data_ke
         rtn_array = samples + rtn_array
     
     return rtn_array
+
+
+def read_imu(ser_obj, debug=False):
+    """
+    Parse data from the IMU
+
+    Args:
+        PySerial Serial - port connected to IMU
+
+    Returns:
+        floats(3) Accelerations for the x, y, and z direction
+    
+    Note:
+        This fcn blocks until all read numbers are read 
+    """
+    data_read = ser_obj.read_until(b'\n')
+    if (debug):
+        print(data_read)
+    data_read = str(data_read,'utf-8')
+    return [float(i) for i in data_read.split()] 

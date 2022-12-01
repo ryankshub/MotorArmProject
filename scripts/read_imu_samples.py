@@ -1,9 +1,18 @@
 #! /usr/bin/env python3
 
-# Project import
-
 # Python import
+import os
+import sys
 import time
+
+# Add Project root for imports
+FILE_PATH = sys.path[0]
+ROOT_PATH = os.path.join(FILE_PATH, '..')
+sys.path.append(ROOT_PATH)
+
+# Project import
+from utils import read_imu
+
 # 3rd party imports
 import matplotlib.pyplot as plt 
 import numpy as np
@@ -18,11 +27,7 @@ read_samples = 30 # anything bigger than 1 to start out
 time_arr = []
 while read_samples > 0:
     time_arr.append(time.time())
-    data_read = ser.read_until(b'\n') # get the data as bytes
-    print(data_read)
-    data_text = str(data_read,'utf-8') # turn the bytes to a string
-    data = [float(i) for i in data_text.split()] # turn the string into a list of floats
-
+    data = read_imu(ser, debug=True)
     read_samples -= 1
 ser.close()
 

@@ -12,7 +12,7 @@ ROOT_PATH = os.path.join(FILE_PATH, '..')
 sys.path.append(ROOT_PATH)
 
 # Project import
-from utils import create_simple_file
+from utils import create_simple_file, read_imu
 
 # 3rd party imports
 import pandas as pd
@@ -52,10 +52,7 @@ if __name__ == "__main__":
     while(time_diff < time_limit):
         time_diff = time.time() - start_time
         time_arr.append(time_diff)
-        data_read = ser.read_until(b'\n')
-        print(data_read)
-        data_text = str(data_read, 'utf-8')
-        ax, ay, az = [float(i) for i in data_text.split()]
+        ax, ay, az = read_imu(ser)
         accx.append(ax)
         accy.append(ay)
         accz.append(az)
