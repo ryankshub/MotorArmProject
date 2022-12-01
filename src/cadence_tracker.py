@@ -52,6 +52,10 @@ class CadenceTracker():
         self._degree_range = (-1, -1)
         self._steps_per_window = -1
         self._time_to_step = -1
+
+        # Debugging var TODO Remove
+        self._step_count = -1
+        self._latest_step = 0
         
 
     # Accesser
@@ -91,6 +95,11 @@ class CadenceTracker():
         """
         return self._TIME_WINDOW_S
 
+    @property
+    def step_count(self):
+        """
+        """
+        return self._step_count
 
     # CadenceTracker fcns
     def cal_degree_range(self, data):
@@ -114,7 +123,16 @@ class CadenceTracker():
         int step_count: number of steps detected in data
         """
         filtered_data = signal.lfilter(self._FILTER_B, self._FILTER_A, data)
-        step_count = len(signal.find_peaks(filtered_data)[0])
+        peaks = signal.find_peaks(filtered_data)[0]
+        step_count = len(peaks)
+        
+        if peaks[-1] > self._latest_step:
+            if self._step_count == -1:
+                self._step_count = step_count
+            else:
+                self._step_count += 1
+        self._latest_step = peaks[-1]
+
         return step_count
         
 
@@ -130,7 +148,9 @@ class CadenceTracker():
         f, Pxx = signal.welch(data, self._DATA_RATE_HZ, nperseg=nPts)
         max_idx = np.argmax(Pxx)
         max_freq = f[max_idx]
-        return np.ceil(self._TIME_WINDOW_S / (1/max_freq))
+        if max_freq < .005:
+            return 0
+        return self._TIME_WINDOW_S / (1/max_freq)
 
 
     def update_cadence(self, data):

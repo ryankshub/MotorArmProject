@@ -113,7 +113,9 @@ class ClassifierSM:
         # Predict
         probs = self._model.predict_proba(feat_df)[0]
         idx = np.argmax(probs)
-        if probs[idx] > self._threshold:
+        if feat_dict["Intensity"][0] < 0.1:
+            self._STATE = "stationary"
+        elif probs[idx] > self._threshold:
             self._STATE = self._lables[idx]
         else:
             self._STATE = "unknown"
