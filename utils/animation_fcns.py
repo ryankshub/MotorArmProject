@@ -103,4 +103,3 @@ def animate_simple_pend(theta_array,L1=1, T=10):
     # Putting it all together and plotting.
     figure1=dict(data=data, layout=layout, frames=frames)           
     iplot(figure1)
-
