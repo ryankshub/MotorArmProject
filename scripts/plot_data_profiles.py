@@ -20,7 +20,7 @@ from utils import apply_filter, apply_zero_phase_filter, parse_mt_file, \
 # 3rd-party import
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
+from scipy import signal, stats
 
 
 def plot_profile(filename, data, end_time, window_len, 
@@ -47,7 +47,6 @@ def plot_profile(filename, data, end_time, window_len,
         filtered_data = apply_zero_phase_filter(data, sample_rate, 
             order, 'lowpass', cutoff)
     peak_height_threshold = np.sort(filtered_data)[-2]
-    print(peak_height_threshold)
     peak_height_threshold = peak_height_threshold*.8
     axs[1].plot(time_axis, filtered_data, label="Filtered Data")
     peaks, _ = signal.find_peaks(filtered_data, height=peak_height_threshold)
@@ -60,14 +59,28 @@ def plot_profile(filename, data, end_time, window_len,
     nPts = len(data)
     f, Pxx = signal.welch(data, sample_rate, nperseg=nPts)
     max_idx = np.argmax(Pxx)
+    pSum = sum(Pxx)
+    pNorm = Pxx/pSum
+    ent = stats.entropy(pNorm)
     dom_freq = f[max_idx]
     dom_power = Pxx[max_idx]
     axs[2].plot(f, Pxx, color='orange')
     axs[2].set_title("Frequency Domain")
     axs[2].set_xlabel("Frequency")
     axs[2].set_ylabel("Power")
-    axs[2].axvline(dom_freq, label=f"Dom Freq {dom_freq:.03f} w/{dom_power:.03f}", color='black')
+    axs[2].axvline(dom_freq, 
+        label=f"Dom Freq {dom_freq:.03f} w/power: {dom_power:.03f} & ent: {ent:.03f}", 
+        color='black')
     axs[2].legend()
+
+    plt.subplots_adjust(left=0.1,
+            bottom=0.1, 
+            right=0.9, 
+            top=0.9, 
+            wspace=0.4, 
+            hspace=0.6)
+
+    plt.show()
 
     
 if __name__ == "__main__":
@@ -126,12 +139,12 @@ if __name__ == "__main__":
                     lowpass_bool, args.order, args.cutoff, args.sample_rate)
                 end_time = end_time + time_increment
 
-        plt.subplots_adjust(left=0.1,
-            bottom=0.1, 
-            right=0.9, 
-            top=0.9, 
-            wspace=0.4, 
-            hspace=0.6)
+        # plt.subplots_adjust(left=0.1,
+        #     bottom=0.1, 
+        #     right=0.9, 
+        #     top=0.9, 
+        #     wspace=0.4, 
+        #     hspace=0.6)
 
-        plt.show()
+        # plt.show()
 
