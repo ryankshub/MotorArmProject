@@ -50,7 +50,7 @@ def object_setup(params):
     return DQ, ClassSM, CT, TLU
 
 
-def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state):
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count):
     """
     """
     DQ.append(accel_measure)
@@ -67,9 +67,12 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state):
         if (state != ClassSM.STATE):
             print(f"STATE: {ClassSM.STATE}")
             state = ClassSM.STATE
-        return tgt_angle, state
+        if (step_count != CT.step_count):
+            print(f"STEP COUNT: {CT.step_count}")
+            step_count = CT.step_count
+        return tgt_angle, state, CT.step_count
     else:
-        return TLU.angle, state
+        return TLU.angle, state, CT.step_count
 
 
 def sil_main(datafile, graph_title, params):
@@ -120,6 +123,7 @@ def live_sil_main(port, params, baudrate=115200):
     alive = True
     count = 0
     state = 'unknown'
+    step_count = 0
     while(alive):
         count += 1
         data_read = ser.read_until(b'\n')
@@ -127,7 +131,7 @@ def live_sil_main(port, params, baudrate=115200):
         #print(data_read)
         ax, ay, az, _, _, _ = [float(i) for i in data_read.split()] 
         accel_measure = np.sqrt( np.sum( np.power([float(ax), float(ay), float(az)], 2) ) )
-        tgt_angle, state = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state)
+        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count)
         if count == 100:
             count = 0
         # TODO Add simple noise model to represent encoder precision
