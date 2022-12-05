@@ -93,7 +93,8 @@ class Textbox:
     """
     Textbox object for pendulum simulation
     """
-
+    # test character for sizing
+    test_char = "S"
     def __init__(self, font, pos, static_text="", dyn_text="", 
         dyn_color="black"):
         """
@@ -119,7 +120,7 @@ class Textbox:
 
         #Get a sense of size for the text box
         self.topleft = pos
-        test_img = self.font.render("S", True, self._static_color)
+        test_img = self.font.render(Textbox.test_char, True, self._static_color)
         self.bottomleft = test_img.get_rect(topleft=pos).bottomleft
             
 
