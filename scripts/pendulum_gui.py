@@ -7,6 +7,7 @@
 # Python imports
 
 # 3rd-party imports
+import numpy as np
 import pygame
 
 
@@ -116,6 +117,11 @@ class Textbox:
         self._static_text = static_text 
         self._static_color = pygame.Color('black')
 
+        #Get a sense of size for the text box
+        self.topleft = pos
+        test_img = self.font.render("S", True, self._static_color)
+        self.bottomleft = test_img.get_rect(topleft=pos).bottomleft
+            
 
     def update_dyn_color(self, color):
         """
@@ -148,6 +154,7 @@ class Textbox:
         if len(self.dyn_text) > 0:
             dyn_img = self.font.render(self.dyn_text, True, self.dyn_color)
             bg.blit(dyn_img, dyn_pose)
+
 
 class Button:
     """
@@ -194,10 +201,17 @@ class Button:
         self.font = font
         self.text = text
         self.button_img = font.render(text, True, font_color)
+
         button_pos = (pos[0] - 2, pos[1] - 2)
-        self.button_rect = self.button_img.get_rect(topleft=button_pos)
+        self.button_rect = self.button_img.get_rect(topleft=pos)
+        self.topright = self.button_rect.topright
+        self.topleft = self.button_rect.topleft
+        self.bottomright = self.button_rect.bottomright
+        self.bottomleft = self.button_rect.bottomleft
         self.button_rect.width += 4
         self.button_rect.height += 4
+        self.button_rect.x = button_pos[0]
+        self.button_rect.y = button_pos[1]
         self.pos = pos
         self.border_width = 3
         self._active = True
@@ -270,34 +284,47 @@ if __name__ == "__main__":
     pygame.init()
 
     # Set up background
-    screen = pygame.display.set_mode((960, 600))
+    screen = pygame.display.set_mode((800, 500))
     screen.fill(pygame.Color('gray'))
-    
+    pygame.display.set_caption("Single Pen Test")
+
+    # clock
+    clock = pygame.time.Clock()
+
     # Font set up
     font = pygame.font.SysFont(None, 38)
 
     # Set up menu
-    log_box = Textbox(font, (10, 10), "Logfile: SIM_test.txt")
-    play = Button(font, (10, 70), "Play", "dodgerblue1", "dodgerblue1")
-    pause_pos = (50, 70)#(play.button_rect.topright[0] + 20, 
-        #play.button_rect.topright[1])
+    log_box = Textbox(font, (20, 20), "Logfile: SIM_test.txt")
+    play_pos = (log_box.bottomleft[0], log_box.bottomleft[1] + 40)
+    play = Button(font, play_pos, "Play", "dodgerblue1", "dodgerblue1")
+    pause_pos = (play.topright[0] + 40, play.topright[1])
     pause = Button(font, pause_pos, "Pause", "firebrick3", "firebrick3")
-    reset_pos = (100, 70)#(pause.button_rect.topright[0] + 20,
-        #pause.button_rect.topright[1])
+    reset_pos = (pause.topright[0] + 40, pause.topright[1])
     reset = Button(font, reset_pos, "Reset", "forestgreen", "forestgreen")
 
     # Set up Status Panel
-    state = Textbox(font, (740, 100), "State: ", "sitting")
-    step_count = Textbox(font, (740, 150), "Step Count: ", "0")
+    state_box = Textbox(font, (520, 150), "State: ", "sitting")
+    step_count_pos = (state_box.bottomleft[0], state_box.bottomleft[1] + 30)
+    step_count_box = Textbox(font, step_count_pos, "Step Count: ", "0")
 
     # Pendulum
-    origin = Ball((360, 300), 5, 'black')
-    first_ball = Ball((360, 375), 12, 'red', 2, 'black')
-    second_ball = Ball((360, 450), 12, 'red', 2, 'black')
-    first_line = Line(75, 'black', 7)
-    second_line = Line(75, 'black', 7)
+    origin = Ball((250, 200), 5, 'black')
+    first_ball = Ball((250, 275), 12, 'red', 2, 'black')
+    second_ball = Ball((250, 350), 12, 'red', 2, 'black')
+    first_line = Line(75, 'black', 11)
+    second_line = Line(75, 'black', 11)
 
     running = True
+    first_angles = np.arange(0, np.pi/2, np.pi/180)
+    second_angles = np.arange(-np.pi/4, np.pi/4, np.pi/180)
+
+    first_angles = np.concatenate((first_angles, np.flip(first_angles)))
+    second_angles = np.concatenate((second_angles, np.flip(second_angles)))
+
+    second_angles = second_angles[:len(first_angles)]
+    state = 'Pause'
+    idx = 0
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -305,10 +332,44 @@ if __name__ == "__main__":
         
             if play.pressed(event):
                 print("Play")
+                state = "Play"
             elif pause.pressed(event):
                 print("Pause")
+                state = "Pause"
             elif reset.pressed(event):
                 print("Reset")
+                state = "Reset"
+
+        fangle = first_angles[idx]
+        sangle = second_angles[idx]
+
+        if state == "Play":
+            play.deactivate()
+            pause.activate()
+            reset.activate()
+            if idx < len(first_angles)-1:
+                idx += 1
+        
+        elif state == "Pause":
+            pause.deactivate()
+            play.activate()
+            if idx == 0:
+                reset.deactivate()
+            else:
+                reset.activate()
+        
+        elif state == "Reset":
+            state = "Pause"
+            pause.deactivate()
+            reset.deactivate()
+            play.activate()
+            idx = 0
+
+        ## Calculate position
+        first_ball.pos = (origin.pos[0] + first_line.length*np.sin(fangle),
+            origin.pos[1] + first_line.length*np.cos(fangle))
+        second_ball.pos = (first_ball.pos[0] + second_line.length*np.sin(fangle + sangle),
+            first_ball.pos[1] + second_line.length*np.cos(fangle + sangle))
             
         screen.fill(pygame.Color('gray'))
         # Lines
@@ -320,8 +381,8 @@ if __name__ == "__main__":
         second_ball.draw(screen)
 
         # Status Panel
-        state.draw(screen)
-        step_count.draw(screen)
+        state_box.draw(screen)
+        step_count_box.draw(screen)
 
         # Menu
         log_box.draw(screen)
@@ -329,6 +390,7 @@ if __name__ == "__main__":
         pause.draw(screen)
         reset.draw(screen)
         pygame.display.flip()
+        clock.tick(100)
     pygame.quit()
     
 
