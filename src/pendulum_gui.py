@@ -93,7 +93,7 @@ class PendulumGUI:
         
         max_idx = len(theta1_array)-1
         # Add logname
-        self.log_box.dyn_text = logfile_name
+        self.log_box.dyn_text = f"Logfile: {logfile_name}"
 
         while running:
             #Check events

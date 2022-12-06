@@ -4,7 +4,8 @@ Runs Software-in-the-loop simulation with application
 """
 
 # Project import
-from src import CadenceTracker, ClassifierSM, DataQueue, TrajectoryLookUp
+from src import CadenceTracker, ClassifierSM, DataQueue, \
+    PendulumGUI, TrajectoryLookUp
 from utils import parse_mt_file, read_imu
 # Python import
 import argparse
@@ -50,8 +51,8 @@ def object_setup(params):
     return DQ, ClassSM, CT, TLU
 
 
-def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count,
-    time_step = -1):
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, logger_dict, 
+    state, step_count, time_step = -1):
     """
     Main execution loop
 
@@ -64,6 +65,7 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count,
             tracks the cadence of the user
         Trajectory Look-up - Look-up table of possible arm trajectories
             the system could follow
+        dict logger_dict - Dictionary to log state and step_count
         TODO: Remove
         string state - current activity being performed
         int step_count - number of steps taken during run
@@ -94,8 +96,14 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count,
         if (step_count != CT.step_count):
             print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}")
             step_count = CT.step_count
+        
+        logger_dict["logstates"].append(ClassSM.STATE)
+        logger_dict["steps"].append(CT.step_count)
+
         return tgt_angle, state, CT.step_count
     else:
+        logger_dict["logstates"].append("booting_up")
+        logger_dict["steps"].append(0)
         return TLU.angle, state, CT.step_count
 
 
@@ -115,21 +123,27 @@ def sil_main(datafile, graph_title, params):
     time_steps = data_dict["Time_s"]
     accel_measures = data_dict["AccM"]
 
+    # Make return log for playback
+    logger_dict = {"logname": os.path.basename(datafile),
+                   "logstates": [],
+                   "theta1": [],
+                   "steps": []}
+
     #Execution Loop
     state = 'unknown'
     step_count = 0
-    angles_log = []
     for i in range(len(time_steps)):
         #Get measurements
         accel_measure = accel_measures[i]
         tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
-                                                ClassSM, CT, TLU, state, 
-                                                step_count, time_steps[i])
+                                                ClassSM, CT, TLU, logger_dict,
+                                                state, step_count, 
+                                                time_steps[i])
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
-        angles_log.append(tgt_angle*2*np.pi)
+        logger_dict["theta1"].append(tgt_angle*2*np.pi)
     
-    return angles_log, time_steps[-1]
+    return logger_dict
 
 
 def live_sil_main(port, params, baudrate=115200):
@@ -164,6 +178,7 @@ def live_sil_main(port, params, baudrate=115200):
         angles_log.append(tgt_angle*2*np.pi)
     
     ser.close()
+
     return angles_log
 
 
@@ -213,14 +228,14 @@ if __name__ == "__main__":
               'ct_window': args.window,
               'ct_method': args.method,
               'time_limit': args.time_limit}
+    
 
     if args.port:
         # live operation 
-        angles_log = live_sil_main(args.imu_source, params)
-        time_limit = args.time_limit
+        logger_dict = live_sil_main(args.imu_source, params)
     else:
         # playback from logfile
-        angles_log, time_limit = sil_main(args.imu_source, args.title, params)
+        logger_dict = sil_main(args.imu_source, args.title, params)
     
-    angles_log = np.array(angles_log)
-
+    app = PendulumGUI(False)
+    app.run_playback(logger_dict, 50)
