@@ -19,7 +19,7 @@ from scipy import signal, stats
 
 
 
-def apply_lowpass_filter(data, fs, filter_order, filter_type, cutoff_freq):
+def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
     """
     Apply butterworth filter of certain type
 
