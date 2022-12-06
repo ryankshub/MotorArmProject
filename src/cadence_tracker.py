@@ -6,6 +6,7 @@ File for Cadence Tracker Class
 # Project Import
 
 # Python Import
+from collections import deque
 import warnings
 # 3rd-party Import
 import numpy as np
@@ -34,6 +35,7 @@ class CadenceTracker():
 
         ## Set 'private' members
         self._DATA_RATE_HZ = data_rate_Hz
+        self._TIME_STEP = 1/data_rate_Hz
         self._TIME_WINDOW_S = time_window_s
         if self._TIME_WINDOW_S < 1:
             warnings.warn("WARNING: Time Window too small; adjusting to 1 second", UserWarning)
@@ -55,7 +57,11 @@ class CadenceTracker():
 
         # Debugging var TODO Remove
         self._step_count = -1
-        self._latest_step = 0
+
+        # Variables for direct counting method
+        self._latest_peak = 0
+        self._latest_valley = 0
+        self._stride_history = deque(maxlen=7)
         
 
     # Accesser
@@ -123,20 +129,56 @@ class CadenceTracker():
         int step_count: number of steps detected in data
         """
         filtered_data = signal.filtfilt(self._FILTER_B, self._FILTER_A, data)
-        peak_height_threshold = np.sort(filtered_data)[-2]
-        peak_height_threshold = peak_height_threshold*.8
-        peaks, _ = signal.find_peaks(filtered_data, 
-                                     height=peak_height_threshold)
-        step_count = len(peaks)
-        
-        if peaks[-1] > self._latest_step:
-            if self._step_count == -1:
-                self._step_count = step_count
-            else:
-                self._step_count += 1
-        self._latest_step = peaks[-1]
+        peaks, _ = signal.find_peaks(filtered_data,
+                                     distance=40)
+        valleys, _ = signal.find_peaks(-filtered_data,
+                                        distance=40)
 
-        return step_count
+        # First time
+        if self._step_count == -1:
+            self._latest_peak = peaks[-1]
+            self._step_count = len(peaks)
+
+            for i in range(1, len(peaks)):
+                stride = (peaks[i] - peaks[i-1])*self._TIME_STEP
+                self._stride_history.appendleft(stride)
+
+        # Next Time
+        else:
+            if peaks[-1] != self._latest_peak - 1:
+                # New step found
+                if self._latest_peak < self._latest_valley and \
+                    peaks[-1] > self._latest_valley:
+                    stride = (peaks[-1] - self._latest_peak)*self._TIME_STEP
+                    self._stride_history.appendleft(stride)
+                    self._step_count += 1
+                    self._latest_peak = peaks[-1]
+                # Phantom step found, update latest stride length
+                elif self._latest_peak > self._latest_valley and \
+                    peaks[-1] > self._latest_valley:
+                    stride = (peaks[-1] - peaks[-2])*self._TIME_STEP
+                    self._stride_history.popleft()
+                    self._stride_history.appendleft(stride)
+                    self._latest_peak = peaks[-1]
+                else:
+                    self._latest_peak -= 1
+        
+        # Update Valley Checkpoint    
+        self._latest_valley = valleys[-1]
+
+        # Get steps per window
+        s_weights = np.linspace(len(self._stride_history), 1, 
+            len(self._stride_history))
+        avg_time_btw_step = np.average(self._stride_history, weights=s_weights)
+
+        # Time to end cals
+        time_to_end = self._TIME_WINDOW_S - self._latest_peak*self._TIME_STEP
+        time_till_step = avg_time_btw_step - time_to_end
+
+        # steps per window
+        steps_per_window = (self._TIME_WINDOW_S/avg_time_btw_step) + 1
+        
+        return steps_per_window
         
 
     def estimate_steps(self, data):

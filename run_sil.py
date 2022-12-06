@@ -5,7 +5,7 @@ Runs Software-in-the-loop simulation with application
 
 # Project import
 from src import CadenceTracker, ClassifierSM, DataQueue, TrajectoryLookUp
-from utils import animate_simple_pend, parse_mt_file, read_imu
+from utils import parse_mt_file, read_imu
 # Python import
 import argparse
 import os
@@ -50,7 +50,8 @@ def object_setup(params):
     return DQ, ClassSM, CT, TLU
 
 
-def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count):
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count,
+    time_step = -1):
     """
     Main execution loop
 
@@ -91,7 +92,7 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count):
             print(f"STATE: {ClassSM.STATE}")
             state = ClassSM.STATE
         if (step_count != CT.step_count):
-            print(f"STEP COUNT: {CT.step_count}")
+            print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}")
             step_count = CT.step_count
         return tgt_angle, state, CT.step_count
     else:
@@ -115,15 +116,17 @@ def sil_main(datafile, graph_title, params):
     accel_measures = data_dict["AccM"]
 
     #Execution Loop
+    state = 'unknown'
+    step_count = 0
     angles_log = []
     for i in range(len(time_steps)):
         #Get measurements
         accel_measure = accel_measures[i]
-        print(accel_measure)
-        tgt_angle = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU)
+        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
+                                                ClassSM, CT, TLU, state, 
+                                                step_count, time_steps[i])
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
-        print(f"angle {tgt_angle}")
         angles_log.append(tgt_angle*2*np.pi)
     
     return angles_log, time_steps[-1]
@@ -150,8 +153,12 @@ def live_sil_main(port, params, baudrate=115200):
     start_time = time.time()
     while(infinite_loop | time.time() - start_time < time_limit):
         ax, ay, az = read_imu(ser)
-        accel_measure = np.sqrt( np.sum( np.power([float(ax), float(ay), float(az)], 2) ) )
-        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, state, step_count)
+        accel_measure = np.sqrt(
+            np.sum( np.power([float(ax), float(ay), float(az)], 2) ) 
+            )
+        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
+                                                ClassSM, CT, TLU, state, 
+                                                step_count)
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
         angles_log.append(tgt_angle*2*np.pi)
@@ -216,5 +223,4 @@ if __name__ == "__main__":
         angles_log, time_limit = sil_main(args.imu_source, args.title, params)
     
     angles_log = np.array(angles_log)
-    animate_simple_pend(angles_log, 1, time_limit)
 
