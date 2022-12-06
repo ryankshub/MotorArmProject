@@ -56,12 +56,12 @@ class PendulumGUI:
             "Step Count: ", "0")
 
         # Set up Pendulum
-        self.pivot = gw.Ball((250, 200), 5, 'black')
+        self.pivot = gw.Ball((250, 225), 5, 'black')
         self.first_line = gw.Line(75, 'black', 11)
-        self.first_ball = gw.Ball((250, 275), 12, 'red', 2, 'black')
+        self.first_ball = gw.Ball((250, 300), 12, 'red', 2, 'black')
         if self.double_pend:
             self.second_line = gw.Line(75, 'black', 11)
-            self.second_ball = gw.Ball((250, 350), 12, 'red', 2, 'black')
+            self.second_ball = gw.Ball((250, 375), 12, 'red', 2, 'black')
 
 
     def run_playback(self, logs_dict, fps=100):
