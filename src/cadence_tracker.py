@@ -176,7 +176,7 @@ class CadenceTracker():
         time_till_step = avg_time_btw_step - time_to_end
 
         # steps per window
-        steps_per_window = (self._TIME_WINDOW_S/avg_time_btw_step) + 1
+        steps_per_window = (self._TIME_WINDOW_S/avg_time_btw_step)
         
         return steps_per_window
         

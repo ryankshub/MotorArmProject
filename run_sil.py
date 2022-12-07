@@ -95,6 +95,7 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, logger_dict,
             state = ClassSM.STATE
         if (step_count != CT.step_count):
             print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}")
+            print(f"SPW {CT.steps_per_window}")
             step_count = CT.step_count
         
         logger_dict["logstates"].append(ClassSM.STATE)

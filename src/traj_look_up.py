@@ -63,7 +63,10 @@ class TrajectoryLookUp():
     @angle.setter
     def angle(self, value):
         self._past_angle = self._angle
-        self._angle = value
+        # Mod value to keep it between 0.5 and 1
+        self._angle = value % 1
+        if self._angle > .5:
+            self._angle -= 1
 
 
     def _conv_step_speed(self, steps, time_window):
@@ -133,19 +136,17 @@ class TrajectoryLookUp():
         # Get swing condition
         # True = Swing Forward, False = Swing Backward
         swing_cond = (self._angle <= self._past_angle)
-        pos_df = self._position_profiles[preset_speed] - self._angle
+        print(f"SWING FORWARD {swing_cond}")
+        pos_df = self._position_profiles[preset_speed]
+        diff_df = abs(pos_df - self._angle)
 
-        while(len(pos_df) != 0):
-            length = len(pos_df)
-            min_idx = pos_df.idxmin()
-            if (pos_df[min_idx] <= pos_df[(min_idx-1) % length]) == swing_cond:
-                return (min_idx, 1)
-            else:
-                return (min_idx, -1)
-
-        ## We should never reach this case
-        # TODO: Exception??
-        return (0, 0)
+        length = len(pos_df)
+        min_idx = diff_df.idxmin()
+        print(f"length {length}, min_idx {min_idx}, min val: {pos_df[min_idx]}")
+        if (pos_df[min_idx] <= pos_df[(min_idx-1) % length]) == swing_cond:
+            return (min_idx, 1)
+        else:
+            return (min_idx, -1)
 
 
     def _blend_traj(self, slow_speed, fast_speed, curr_speed,
@@ -183,25 +184,32 @@ class TrajectoryLookUp():
             The desired position angle(in revolutions) of the arm 
         """
         # Check if walking
-        if steps == -1: 
+        if steps == -1:  
+            print("Invalid step")
             if abs(self._angle) < .001:
                 return self._angle
             elif self._angle < 0.0:
-                return self._angle + self._HOME_RATE
+                self.angle = (self._angle + self._HOME_RATE)
+                return self._angle
             else:
-                return self._angle - self._HOME_RATE 
+                self.angle = (self._angle - self._HOME_RATE)
+                return self._angle
 
         # Get new speed
         est_speed = self._conv_step_speed(steps, time_window)
-
+        print(f"Est Speed {est_speed}, Current Speed {self._curr_speed}, EPI: {self._EPSILON*3}")
         # Check if change is drastic enough to alter trajectories
         if (abs(self._curr_speed - est_speed) > 3*self._EPSILON):
+            print("Run first conditional")
             # Calculate new slow/fast speed
             self._curr_speed = est_speed
             self._slow_speed, self._fast_speed = self._get_walk_speeds(self._curr_speed)
+            print(f"Slow Speed {self._slow_speed}, Fast Speed {self._fast_speed}")
             self._fast_index, self._fast_incre = self._search_trajs(self._fast_speed)
+            print(f"Fast Index: {self._fast_index}, Fast Increment: {self._fast_incre}")
             if self._slow_speed:
                 self._slow_index, self._slow_incre = self._search_trajs(self._slow_speed)
+                print(f"Slow Index: {self._slow_index}, Slow Increment: {self._slow_incre}")
             else:
                 self._slow_index = None
 
