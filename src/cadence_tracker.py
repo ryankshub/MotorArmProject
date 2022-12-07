@@ -176,7 +176,10 @@ class CadenceTracker():
         time_till_step = avg_time_btw_step - time_to_end
 
         # steps per window
-        steps_per_window = (self._TIME_WINDOW_S/avg_time_btw_step)
+        if self._METHOD == "direct":
+            steps_per_window = (self._TIME_WINDOW_S/avg_time_btw_step)
+        else:
+            steps_per_window = self.estimate_steps(data)
         
         return steps_per_window
         
@@ -208,12 +211,13 @@ class CadenceTracker():
             self._time_to_step = -1
         else:
             ## UPDATE STEP COUNT
-            if (self._METHOD == 'direct'):
-                # Directly count the steps
-                self._steps_per_window = self.count_steps(data)
-            else:
-                # Estimate using dominate frequency
-                self._steps_per_window = self.estimate_steps(data)
+            self._steps_per_window = self.count_steps(data)
+            # if (self._METHOD == 'direct'):
+            #     # Directly count the steps
+            #     self._steps_per_window = self.count_steps(data)
+            # else:
+            #     # Estimate using dominate frequency
+            #     self._steps_per_window = self.estimate_steps(data)
 
             ## UPDATE TIME TO NEXT STEP
             self._time_to_step = self.cal_time_to_step(data)

@@ -136,13 +136,11 @@ class TrajectoryLookUp():
         # Get swing condition
         # True = Swing Forward, False = Swing Backward
         swing_cond = (self._angle <= self._past_angle)
-        print(f"SWING FORWARD {swing_cond}")
         pos_df = self._position_profiles[preset_speed]
         diff_df = abs(pos_df - self._angle)
 
         length = len(pos_df)
         min_idx = diff_df.idxmin()
-        print(f"length {length}, min_idx {min_idx}, min val: {pos_df[min_idx]}")
         if (pos_df[min_idx] <= pos_df[(min_idx-1) % length]) == swing_cond:
             return (min_idx, 1)
         else:
@@ -185,7 +183,6 @@ class TrajectoryLookUp():
         """
         # Check if walking
         if steps == -1:  
-            print("Invalid step")
             if abs(self._angle) < .001:
                 return self._angle
             elif self._angle < 0.0:
@@ -197,32 +194,34 @@ class TrajectoryLookUp():
 
         # Get new speed
         est_speed = self._conv_step_speed(steps, time_window)
-        print(f"Est Speed {est_speed}, Current Speed {self._curr_speed}, EPI: {self._EPSILON*3}")
+
         # Check if change is drastic enough to alter trajectories
         if (abs(self._curr_speed - est_speed) > 3*self._EPSILON):
-            print("Run first conditional")
             # Calculate new slow/fast speed
             self._curr_speed = est_speed
             self._slow_speed, self._fast_speed = self._get_walk_speeds(self._curr_speed)
-            print(f"Slow Speed {self._slow_speed}, Fast Speed {self._fast_speed}")
             self._fast_index, self._fast_incre = self._search_trajs(self._fast_speed)
-            print(f"Fast Index: {self._fast_index}, Fast Increment: {self._fast_incre}")
+
             if self._slow_speed:
                 self._slow_index, self._slow_incre = self._search_trajs(self._slow_speed)
-                print(f"Slow Index: {self._slow_index}, Slow Increment: {self._slow_incre}")
             else:
                 self._slow_index = None
 
         # Calculate return set_point
         rtn_setpoint = 0.0
         if self._slow_speed:
-            rtn_setpoint = self._blend_traj(self._slow_speed, self._fast_speed, self._curr_speed,
-                self._slow_index, self._fast_index)
             #Update index
             self._slow_index = (self._slow_index + self._slow_incre) % len(self._position_profiles[self._slow_speed])
             self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
+            #Update setpoint
+            rtn_setpoint = self._blend_traj(self._slow_speed, self._fast_speed, self._curr_speed,
+                self._slow_index, self._fast_index)
+
         else:
-            rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
+            #Update index
             self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
+            #Update setpoint
+            rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
+
 
         return rtn_setpoint

@@ -239,4 +239,4 @@ if __name__ == "__main__":
         logger_dict = sil_main(args.imu_source, args.title, params)
     
     app = PendulumGUI(False)
-    app.run_playback(logger_dict, 50)
+    app.run_playback(logger_dict)
