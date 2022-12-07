@@ -63,7 +63,7 @@ class TrajectoryLookUp():
     @angle.setter
     def angle(self, value):
         self._past_angle = self._angle
-        # Mod value to keep it between 0.5 and 1
+        # Mod value to keep it between -0.5 and 0.5
         self._angle = value % 1
         if self._angle > .5:
             self._angle -= 1
