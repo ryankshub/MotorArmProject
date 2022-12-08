@@ -112,7 +112,8 @@ class TrajectorySplineGenerator:
         # Get Elbow flex angle
         angle_diff = (self._ELBOW_BASE_SPEED - speed)/self._ELBOW_ANGLE_CONV
         angle_deg = self._ELBOW_BASE_ANGLE + angle_diff
-        return angle_diff/360
+        print(f"TARGET ANGLE {angle_deg}")
+        return angle_deg/360
 
 
     def generate_trajectory(self, target_angle, current_angle):
@@ -142,6 +143,7 @@ class TrajectorySplineGenerator:
             cand_angle += vel
             angle_traj.append(cand_angle)
 
+        print(f"ANGLE TRAJ {angle_traj}")
         return deque(angle_traj)
 
     
@@ -164,7 +166,7 @@ class TrajectorySplineGenerator:
             If the function is using a single pendulum model, the shoulder angle
                 will be set to None 
         """
-        if self.double_pend:
+        if self._double_pend:
             return self._get_pos_double_pendulum(steps, 
                                                  time_window, 
                                                  time_till_step)
@@ -206,6 +208,7 @@ class TrajectorySplineGenerator:
         if len(self._el_trajectory) == 0:
             # Elbow flex angle
             elbow_flex = self.get_elbow_flex_angle(steps, time_window)
+            print(f"TARGET ANGLE REV {elbow_flex}")
             # Generate new trajectory
             if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
                 # Swing backward
