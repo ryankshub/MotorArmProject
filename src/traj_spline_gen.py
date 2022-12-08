@@ -31,6 +31,7 @@ class TrajectorySplineGenerator:
         self.sample_rate = sample_rate
         self._el_trajectory = deque()
         self._sh_trajectory = deque()
+        self._time_normalizer = 30
         self._HOME_RATE = .001 # in rev/sample
         self._DEGREE_THRES = .005 # in rev
 
@@ -91,28 +92,21 @@ class TrajectorySplineGenerator:
             self._shoulder_angle -= 1
 
 
-    def get_shoulder_ext_angle(self, steps, time_window):
+    def get_shoulder_ext_angle(self, est_speed):
         """
         """
-        # Get walk speed from steps and time_window
-        speed = 1.0
-
         # Get shoulder ext angle
-        angle_diff = (self._SHOULDER_BASE_SPEED - speed)/self._SHOULDER_ANGLE_CONV
+        angle_diff = (self._SHOULDER_BASE_SPEED - est_speed)/self._SHOULDER_ANGLE_CONV
         angle_deg = self._SHOULDER_BASE_ANGLE - angle_diff
         return angle_deg/360
 
 
-    def get_elbow_flex_angle(self, steps, time_window):
+    def get_elbow_flex_angle(self, est_speed):
         """
         """
-        # Get walk speed from steps and time_window
-        speed = 1.0
-
         # Get Elbow flex angle
-        angle_diff = (self._ELBOW_BASE_SPEED - speed)/self._ELBOW_ANGLE_CONV
+        angle_diff = (self._ELBOW_BASE_SPEED - est_speed)/self._ELBOW_ANGLE_CONV
         angle_deg = self._ELBOW_BASE_ANGLE + angle_diff
-        print(f"TARGET ANGLE {angle_deg}")
         return angle_deg/360
 
 
@@ -143,7 +137,6 @@ class TrajectorySplineGenerator:
             cand_angle += vel
             angle_traj.append(cand_angle)
 
-        print(f"ANGLE TRAJ {angle_traj}")
         return deque(angle_traj)
 
     
@@ -174,6 +167,24 @@ class TrajectorySplineGenerator:
             return self._get_pos_single_pendulum(steps,
                                                  time_window,
                                                  time_till_step)
+
+
+    def _conv_step_speed(self, steps, time_window):
+        """
+        Convert step count from a certain window into an estimated walking speed
+
+        TODO: The current model is based on data to fit RKS only
+        """
+        scaled_steps = steps *(self._time_normalizer/time_window)
+
+        # Piecewise linear function model
+        # These are derived from data
+        if scaled_steps < 52:
+            return (scaled_steps - 37)/15
+        elif scaled_steps > 57:
+            return (scaled_steps - 39)/15
+        else:
+            return (scaled_steps - 27)/25
 
 
     def _get_pos_single_pendulum(self, steps, time_window, time_till_step):
@@ -207,18 +218,17 @@ class TrajectorySplineGenerator:
         self.time_till_step = time_till_step
         if len(self._el_trajectory) == 0:
             # Elbow flex angle
-            elbow_flex = self.get_elbow_flex_angle(steps, time_window)
-            print(f"TARGET ANGLE REV {elbow_flex}")
+            est_speed = self._conv_step_speed(steps, time_window)
+            elbow_flex = self.get_elbow_flex_angle(est_speed)
+
             # Generate new trajectory
             if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
                 # Swing backward
-                print("SWING BACK")
                 self._el_trajectory = \
                     self.generate_trajectory(self._ELBOW_MAX_EXT,
                                              self._elbow_angle)
             else:
                 # Swing Forward
-                print("SWING FORWARD")
                 self._el_trajectory = \
                     self.generate_trajectory(elbow_flex, 
                                              self._elbow_angle)
@@ -266,12 +276,12 @@ class TrajectorySplineGenerator:
             self.time_till_step = time_till_step
             if len(self._el_trajectory) == 0:
                 # Elbow flex angle
-                elbow_flex = self.get_elbow_flex_angle(steps, time_window)
-                shoulder_ext = self.get_shoulder_ext_angle(steps, time_window)
+                est_speed = self._conv_step_speed(steps, time_window)
+                elbow_flex = self.get_elbow_flex_angle(est_speed)
+                shoulder_ext = self.get_shoulder_ext_angle(est_speed)
                 # Generate new trajectory
                 if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
                     # Swing backward
-                    print("SWING BACK")
                     self._el_trajectory = \
                         self.generate_trajectory(self._ELBOW_MAX_EXT,
                                                  self._elbow_angle)
@@ -280,7 +290,6 @@ class TrajectorySplineGenerator:
                                                  self._shoulder_angle)
                 else:
                     # Swing Forward
-                    print("SWING FORWARD")
                     self._el_trajectory = \
                         self.generate_trajectory(elbow_flex, 
                                                  self._elbow_angle)
