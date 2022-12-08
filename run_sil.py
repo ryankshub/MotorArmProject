@@ -9,6 +9,7 @@ from src import CadenceTracker, ClassifierSM, DataQueue, \
 from utils import parse_mt_file, read_imu
 # Python import
 import argparse
+from collections import deque
 import os
 import time
 # 3rd-party import
@@ -147,7 +148,7 @@ def sil_main(datafile, graph_title, params):
     return logger_dict
 
 
-def live_sil_main(port, params, baudrate=115200):
+def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
     # Set objects
     DQ, ClassSM, CT, TLU = object_setup(params)
 
@@ -159,6 +160,11 @@ def live_sil_main(port, params, baudrate=115200):
 
     # Get time limit
     time_limit = params.get('time_limit', 30.0)
+
+    # Make log for grabbing execution info
+    logger_dict = {"logstates": deque(),
+                   "theta1": deque(),
+                   "steps": deque()}
 
     # Read IMU
     state = 'unknown'
@@ -172,11 +178,15 @@ def live_sil_main(port, params, baudrate=115200):
             np.sum( np.power([float(ax), float(ay), float(az)], 2) ) 
             )
         tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
-                                                ClassSM, CT, TLU, state, 
-                                                step_count)
+                                                ClassSM, CT, TLU, logger_dict,
+                                                state, step_count)
         # TODO Add simple noise model to represent encoder precision
         TLU.angle = tgt_angle
-        angles_log.append(tgt_angle*2*np.pi)
+        
+        if gui_update_fcn is not None:
+            gui_update_fcn(logger_dict['logstates'].pop(),
+                           logger_dict['steps'].pop(),
+                           logger_dict['theta1'].pop())
     
     ser.close()
 
@@ -233,10 +243,12 @@ if __name__ == "__main__":
 
     if args.port:
         # live operation 
-        logger_dict = live_sil_main(args.imu_source, params)
+        app = PendulumGUI(False)
+        app.setup_live()
+        live_sil_main(args.imu_source, params, app.live_update)
+        app.await_death()
     else:
         # playback from logfile
         logger_dict = sil_main(args.imu_source, args.title, params)
-    
-    app = PendulumGUI(False)
-    app.run_playback(logger_dict)
+        app = PendulumGUI(False)
+        app.run_playback(logger_dict)

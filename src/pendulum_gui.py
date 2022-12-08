@@ -16,15 +16,17 @@ class PendulumGUI:
     Graphic Interface used for playback of arm motions 
     """
 
-    def __init__(self, double_pend=True):
+    def __init__(self, double_pend=True, live=False):
         """
         Constructor of GUI sturcture
 
         Args:
             bool double_pend - use double pendulum model. if false, gui will 
                 show a single pendulum arm instead
+            bool live - set True if gui will be used for live playback
         """
         self.double_pend = double_pend
+        self.live = live
 
         pygame.init()
         # Build Scenery
@@ -38,15 +40,16 @@ class PendulumGUI:
 
         # Set Up Menu
         self.log_box = gw.Textbox(self.font, (20, 20))
-        play_pos = (self.log_box.bottomleft[0], self.log_box.bottomleft[1] + 40)
-        self.play = gw.Button(self.font, play_pos, 
-            "Play", "dodgerblue1", "dodgerblue1")
-        pause_pos = (self.play.topright[0] + 40, self.play.topright[1])
-        self.pause = gw.Button(self.font, pause_pos, 
-            "Pause", "firebrick3", "firebrick3")
-        reset_pos = (self.pause.topright[0] + 40, self.pause.topright[1])
-        self.reset = gw.Button(self.font, reset_pos, 
-            "Reset", "forestgreen", "forestgreen")
+        if not self.live:
+            play_pos = (self.log_box.bottomleft[0], self.log_box.bottomleft[1] + 40)
+            self.play = gw.Button(self.font, play_pos, 
+                "Play", "dodgerblue1", "dodgerblue1")
+            pause_pos = (self.play.topright[0] + 40, self.play.topright[1])
+            self.pause = gw.Button(self.font, pause_pos, 
+                "Pause", "firebrick3", "firebrick3")
+            reset_pos = (self.pause.topright[0] + 40, self.pause.topright[1])
+            self.reset = gw.Button(self.font, reset_pos, 
+                "Reset", "forestgreen", "forestgreen")
 
         # Set up Status Panel
         self.state_box = gw.Textbox(self.font, (520, 150), "State: ")
@@ -62,6 +65,34 @@ class PendulumGUI:
         if self.double_pend:
             self.second_line = gw.Line(75, 'black', 11)
             self.second_ball = gw.Ball((250, 375), 12, 'red', 2, 'black')
+
+
+    def draw(self):
+        """
+        Draw all widget in the gui
+        """
+        # Draw and update Gui
+        self.screen.fill(pygame.Color('gray'))
+
+        # Menu
+        self.log_box.draw(self.screen)
+        if not self.live:
+            self.play.draw(self.screen)
+            self.pause.draw(self.screen)
+            self.reset.draw(self.screen)
+
+        # Status Panel
+        self.state_box.draw(self.screen)
+        self.step_count_box.draw(self.screen)
+
+        # Pendulum
+        self.first_line.draw(self.screen, self.pivot.pos, self.first_ball.pos)
+        self.pivot.draw(self.screen)
+        if self.double_pend:
+            self.second_line.draw(self.screen, self.first_ball.pos, 
+                self.second_ball.pos)
+            self.second_ball.draw(self.screen)
+        self.first_ball.draw(self.screen)
 
 
     def run_playback(self, logs_dict, fps=100):
@@ -129,31 +160,67 @@ class PendulumGUI:
                 self._update_pendulum(theta1)
 
             # Draw and update Gui
-            self.screen.fill(pygame.Color('gray'))
-
-            # Menu
-            self.log_box.draw(self.screen)
-            self.play.draw(self.screen)
-            self.pause.draw(self.screen)
-            self.reset.draw(self.screen)
-
-            # Status Panel
-            self.state_box.draw(self.screen)
-            self.step_count_box.draw(self.screen)
-
-            # Pendulum
-            self.first_line.draw(self.screen, self.pivot.pos, self.first_ball.pos)
-            self.pivot.draw(self.screen)
-            if self.double_pend:
-                self.second_line.draw(self.screen, self.first_ball.pos, 
-                    self.second_ball.pos)
-                self.second_ball.draw(self.screen)
-            self.first_ball.draw(self.screen)
+            self.draw()
 
             # Update
             pygame.display.flip()
             clock.tick(fps)
 
+        pygame.quit()
+
+
+    def setup_live(self):
+        """
+        Set up gui for live playback
+        """
+        # Add logname
+        self.log_box.dyn_text = f"Live!"
+
+        # Draw and update Gui
+        self.draw()
+    
+
+    def live_update(self, class_state, steps, theta1, theta2=None):
+        """
+        Update Gui widget from an external source
+
+        Args:
+            string class_state: current state to be displayed
+            num steps: how many steps have been taken
+            num theta1: angle of the first link (in radians)
+            num theta2: if a double_pendulum simulation, angle of the second
+                link (in radians). 
+        """
+        # Update class_state and step count
+        self._update_status_panel(class_state, steps)
+
+        # Update position of pendulum
+        if self.double_pend:
+            self._update_pendulum(theta1, theta2)
+        else:
+            self._update_pendulum(theta1)
+
+        # Draw and update Gui
+        self.draw()
+
+
+    def await_death(self):
+        """
+        Disable gui and wait for user to close gui
+        """
+        # Add logname
+        self.log_box.dyn_text = f"Session Over. Close Gui"
+
+        running = True
+        while running:
+            #Check events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            # Draw and update Gui
+            self.draw()
+        
         pygame.quit()
 
 
@@ -163,7 +230,7 @@ class PendulumGUI:
 
         Args:
             string class_state: current state 
-            num step counts: how many steps have been taken
+            num steps: how many steps have been taken
         """
         self.state_box.dyn_text = class_state
         if class_state == "walking":
