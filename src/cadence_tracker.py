@@ -53,7 +53,7 @@ class CadenceTracker():
         # Non-Const
         self._degree_range = (-1, -1)
         self._steps_per_window = -1
-        self._time_to_step = -1
+        self._time_till_step = -1
 
         # Debugging var TODO Remove
         self._step_count = -1
@@ -208,7 +208,7 @@ class CadenceTracker():
             # If we are not walking, set values to negative one
             self._degree_range = (-1, -1)
             self._steps_per_window = -1
-            self._time_to_step = -1
+            self._time_till_step = -1
         else:
             ## UPDATE STEP COUNT
             self._steps_per_window = self.count_steps(data)

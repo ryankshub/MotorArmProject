@@ -15,7 +15,9 @@ import time
 # 3rd-party import
 from matplotlib import pyplot as plt
 import numpy as np
+import pygame
 import serial
+
 
 
 def object_setup(params):
@@ -30,7 +32,7 @@ def object_setup(params):
     csm_window = params.get('csm_window', 3.5) # time window of classifier wrapper
 
     ct_window = params.get('ct_window', 3.5) # time window of cadence tracker
-    ct_method = params.get('ct_method', 'indirect')
+    ct_method = params.get('ct_method', 'direct')
 
     double_pend = params.get('double_pend', False) 
     # Make Objects
@@ -98,13 +100,12 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TRAJ, logger_dict,
                                                    CT.time_till_step)
 
         #TODO: DEBUGGING: Add GUI HOOKS
-        # if (state != ClassSM.STATE):
-        #     print(f"STATE: {ClassSM.STATE}")
-        #     state = ClassSM.STATE
-        # if (step_count != CT.step_count):
-        #     print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}, " 
-        #         f"SPW {CT.steps_per_window}")
-        step_count = CT.step_count
+        if (state != ClassSM.STATE):
+            print(f"STATE: {ClassSM.STATE}")
+            state = ClassSM.STATE
+        if (step_count != CT.step_count):
+            print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}, " 
+                f"SPW {CT.steps_per_window}")
         
         logger_dict["logstates"].append(ClassSM.STATE)
         logger_dict["steps"].append(CT.step_count)
@@ -162,9 +163,61 @@ def sil_main(datafile, graph_title, params):
     return logger_dict
 
 
-def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
+def live_sil_headless(port, params, baudrate=115200):
     # Set objects
     DQ, ClassSM, CT, TRAJ = object_setup(params)
+
+    # Get input rate
+    data_rate = params.get('data_rate', 100)
+
+    # Set up serial port
+    ser = serial.Serial(port, baudrate)
+
+    # Get time limit
+    time_limit = params.get('time_limit', 30.0)
+
+    # Logger dict for playback
+    logger_dict = {"logname": "Live!",
+                    "logstates": [],
+                    "theta1": [],
+                    "steps": []}
+    if params.get("double_pend", False):
+        logger_dict["theta2"] = []
+
+    # Read IMU
+    state = 'unknown'
+    step_count = 0
+    infinite_loop = time_limit < 0
+    start_time = time.time()
+    while(infinite_loop | (time.time() - start_time < time_limit)):
+        ax, ay, az = read_imu(ser)
+        accel_measure = np.sqrt(
+            np.sum( np.power([float(ax), float(ay), float(az)], 2) ) 
+            )
+        el_angle, sh_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
+                                                ClassSM, CT, TRAJ, logger_dict,
+                                                state, step_count)
+        # TODO Add simple noise model to represent encoder precision
+        TRAJ.angle = el_angle
+        TRAJ.sh_angle = sh_angle
+        if sh_angle is None:
+            logger_dict["theta1"].append(el_angle*2*np.pi)
+        else:
+            logger_dict["theta1"].append(sh_angle*2*np.pi)
+            logger_dict["theta2"].append(el_angle*2*np.pi)
+    
+    ser.close()
+
+    return logger_dict
+
+
+def live_sil_gui(port, params, baudrate=115200):
+    # Set objects
+    DQ, ClassSM, CT, TRAJ = object_setup(params)
+
+    #Make Gui
+    App = PendulumGUI(double_pend=params.get("double_pend", False), 
+                      live=True)
 
     # Get input rate
     data_rate = params.get('data_rate', 100)
@@ -181,31 +234,37 @@ def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
                    "steps": deque()}
 
     # Read IMU
+    running = True
     state = 'unknown'
     step_count = 0
-    angles_log = []
     infinite_loop = time_limit < 0
     start_time = time.time()
-    while(infinite_loop | (time.time() - start_time < time_limit)):
+    while((infinite_loop | (time.time() - start_time < time_limit)) \
+        and running):
+        # check if we quit
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        # Read IMU
         ax, ay, az = read_imu(ser)
         accel_measure = np.sqrt(
             np.sum( np.power([float(ax), float(ay), float(az)], 2) ) 
             )
-        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
+        # Execute
+        el_angle, sh_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
                                                 ClassSM, CT, TRAJ, logger_dict,
                                                 state, step_count)
         # TODO Add simple noise model to represent encoder precision
-        TRAJ.angle = tgt_angle
-        logger_dict["theta1"].append(tgt_angle*2*np.pi)
-
-        if gui_update_fcn is not None:
-            gui_update_fcn(logger_dict['logstates'].pop(),
-                           logger_dict['steps'].pop(),
-                           logger_dict['theta1'].pop())
+        TRAJ.angle = el_angle
+        TRAJ.sh_angle = sh_angle
+        if sh_angle is None:
+            App.live_update(ClassSM.STATE, CT.step_count, el_angle)
+        else:
+            App.live_update(ClassSM.STATE, CT.step_count, sh_angle, el_angle)
     
     ser.close()
+    pygame.quit()
 
-    return angles_log
 
 
 def _check_threshold(arg):
@@ -250,6 +309,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--double_pend", action='store_true', 
         help="Use the double pendulum model. This can only be used with \
             trajectory spline generator (the look_up option is ignored")
+    parser.add_argument("-i", "--headless", action='store_true', 
+        help="Run the live sil without gui")
     
     args = parser.parse_args()
     params = {'data_rate': args.data_rate,
@@ -261,16 +322,16 @@ if __name__ == "__main__":
               'ct_method': args.method,
               'time_limit': args.time_limit,
               'use_lookup': args.look_up and (not args.double_pend),
-              "double_pend": args.double_pend}
+              "double_pend": args.double_pend,
+              "headless": args.headless}
     
 
     if args.port:
-        # live operation 
-        app = PendulumGUI(False)
-        #app.setup_live()
-        #live_sil_main(args.imu_source, params, gui_update_fcn=app.live_update)
-        print("KILL ME")
-        app.await_death()
+        # live operation
+        logger_dict = live_sil_headless(args.imu_source, params)
+        app = PendulumGUI(double_pend=args.double_pend)
+        app.run_playback(logger_dict)
+
     else:
         # playback from logfile
         logger_dict = sil_main(args.imu_source, args.title, params)
