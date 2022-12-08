@@ -25,7 +25,10 @@ class TrajectorySplineGenerator:
             bool double_pend - set True to return should angles as well
         """
         self._elbow_angle = 0
-        self._shoulder_angle = 0
+        if double_pend:
+            self._shoulder_angle = 0
+        else:
+            self._shoulder_angle = None
         self._double_pend = double_pend
         self.time_till_step = -1
         self.sample_rate = sample_rate
@@ -35,6 +38,7 @@ class TrajectorySplineGenerator:
         self._HOME_RATE = .001 # in rev/sample
         self._DEGREE_THRES = .005 # in rev
         self._MIN_TIME_NEEDED = 0.2 
+        self._swing_forward = True
 
         # NOTE: The following constants are based on information from:
         # Perry J, Burnfield JM.
@@ -88,9 +92,10 @@ class TrajectorySplineGenerator:
 
         Modify the angle to keep it in range (-.5, .5]
         """
-        self._shoulder_angle = value % 1
-        if self._shoulder_angle > .5:
-            self._shoulder_angle -= 1
+        if self._double_pend:
+            self._shoulder_angle = value % 1
+            if self._shoulder_angle > .5:
+                self._shoulder_angle -= 1
 
 
     def get_shoulder_ext_angle(self, est_speed):
@@ -118,8 +123,7 @@ class TrajectorySplineGenerator:
         # Get max velocity
         angle_disp = target_angle - current_angle
         max_vel = 2*angle_disp/self.time_till_step
-        print(f"TARGET_ANGLE {360*target_angle}, CURRENT_ANGLE {360*current_angle}, "
-            f"ANGLE_DISP {360*angle_disp}, MAX_VEL {360*max_vel}, TIME TILL STEP {self.time_till_step}")
+        
         # Get the point where trajectory should hit maximum velocity
         # For this algorithm it's the half-way point
         half_samp = int(self.time_till_step*self.sample_rate*.5)
@@ -229,18 +233,19 @@ class TrajectorySplineGenerator:
             elbow_flex = self.get_elbow_flex_angle(est_speed)
 
             # Generate new trajectory
-            if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
-                # Swing backward
-                print("SWING BACKWARDS")
-                self._el_trajectory = \
-                    self.generate_trajectory(self._ELBOW_MAX_EXT,
-                                             self._elbow_angle)
-            else:
+            if self._swing_forward:
                 # Swing Forward
-                print("SWING FORWARDS")
                 self._el_trajectory = \
                     self.generate_trajectory(elbow_flex, 
                                              self._elbow_angle)
+                self._swing_forward = False
+ 
+            else:
+                # Swing backward
+                self._el_trajectory = \
+                    self.generate_trajectory(self._ELBOW_MAX_EXT,
+                                             self._elbow_angle)
+                self._swing_forward = True
 
         return self._el_trajectory.popleft(), None
 
@@ -263,6 +268,7 @@ class TrajectorySplineGenerator:
         if steps == -1: 
             self._el_trajectory.clear()
             self._sh_trajectory.clear()
+
             # Update Elbow
             if abs(self._elbow_angle) < self._DEGREE_THRES:
                 pass
@@ -270,6 +276,7 @@ class TrajectorySplineGenerator:
                 self.angle = (self._elbow_angle + self._HOME_RATE)
             else:
                 self.angle = (self._elbow_angle - self._HOME_RATE)
+
             # Update Shoulder
             if abs(self._shoulder_angle) < self._DEGREE_THRES:
                 pass
@@ -277,6 +284,7 @@ class TrajectorySplineGenerator:
                 self.sh_angle = (self._shoulder_angle + self._HOME_RATE)
             else:
                 self.sh_angle = (self._shoulder_angle - self._HOME_RATE)
+
             # return new desired angles
             return self._elbow_angle, self._shoulder_angle
 
@@ -284,23 +292,18 @@ class TrajectorySplineGenerator:
             # walking behavior
             self.time_till_step = time_till_step
             if len(self._el_trajectory) == 0:
+
                 # If we are looking for a step, wait for a bit
-                if self.time_till_step <= 0.0:
+                if self.time_till_step <= self._MIN_TIME_NEEDED:
                     return self._elbow_angle, self._shoulder_angle
-                # Elbow flex angle
+
+                # Elbow flex and shoulder_ext angle
                 est_speed = self._conv_step_speed(steps, time_window)
                 elbow_flex = self.get_elbow_flex_angle(est_speed)
                 shoulder_ext = self.get_shoulder_ext_angle(est_speed)
+
                 # Generate new trajectory
-                if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
-                    # Swing backward
-                    self._el_trajectory = \
-                        self.generate_trajectory(self._ELBOW_MAX_EXT,
-                                                 self._elbow_angle)
-                    self._sh_trajectory = \
-                        self.generate_trajectory(shoulder_ext,
-                                                 self._shoulder_angle)
-                else:
+                if self._swing_forward:
                     # Swing Forward
                     self._el_trajectory = \
                         self.generate_trajectory(elbow_flex, 
@@ -308,5 +311,16 @@ class TrajectorySplineGenerator:
                     self._sh_trajectory = \
                         self.generate_trajectory(self._SHOULDER_MAX_FLEX,
                                                  self._shoulder_angle)
+                    self._swing_forward = False
+
+                else:
+                    # Swing backward
+                    self._el_trajectory = \
+                        self.generate_trajectory(self._ELBOW_MAX_EXT,
+                                                 self._elbow_angle)
+                    self._sh_trajectory = \
+                        self.generate_trajectory(shoulder_ext,
+                                                 self._shoulder_angle)
+                    self._swing_forward = True
 
             return self._el_trajectory.popleft(), self._sh_trajectory.popleft()

@@ -68,6 +68,23 @@ class TrajectoryLookUp():
         if self._angle > .5:
             self._angle -= 1
 
+    @property
+    def sh_angle(self):
+        """
+        Return current shoulder angle (in revolutions)
+        NOTE: only update if double pendulum is true
+        """
+        return None
+
+    @sh_angle.setter
+    def sh_angle(self, value):
+        """
+        Update current shoulder angle value (in revolutions)
+
+        Modify the angle to keep it in range (-.5, .5]
+        """
+        pass
+
 
     def _conv_step_speed(self, steps, time_window):
         """
@@ -168,7 +185,7 @@ class TrajectoryLookUp():
         return alpha*slow_value + (1-alpha)*fast_value
     
 
-    def get_pos_setpoint(self, steps, time_window):
+    def get_pos_setpoint(self, steps, time_window, time_till_step=None):
         """
         Calcuate the new position setpoint given the current
         number of steps in a time window
@@ -184,13 +201,13 @@ class TrajectoryLookUp():
         # Check if walking
         if steps == -1:  
             if abs(self._angle) < .001:
-                return self._angle
+                return self._angle, None
             elif self._angle < 0.0:
                 self.angle = (self._angle + self._HOME_RATE)
-                return self._angle
+                return self._angle, None
             else:
                 self.angle = (self._angle - self._HOME_RATE)
-                return self._angle
+                return self._angle, None
 
         # Get new speed
         est_speed = self._conv_step_speed(steps, time_window)
@@ -223,5 +240,4 @@ class TrajectoryLookUp():
             #Update setpoint
             rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
 
-
-        return rtn_setpoint
+        return rtn_setpoint, None

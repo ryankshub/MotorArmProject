@@ -32,6 +32,7 @@ def object_setup(params):
     ct_window = params.get('ct_window', 3.5) # time window of cadence tracker
     ct_method = params.get('ct_method', 'indirect')
 
+    double_pend = params.get('double_pend', False) 
     # Make Objects
     DQ = DataQueue(data_rate_Hz=data_rate, time_window_s=dq_window)
     ClassSM = ClassifierSM(csm_modelfile, threshold=csm_threshold, 
@@ -50,7 +51,8 @@ def object_setup(params):
                     1.4: 'data/template_data/14ms.csv'}
         TRAJ = TrajectoryLookUp(profiles=profiles)
     else:
-        TRAJ = TrajectorySplineGenerator(sample_rate=data_rate)
+        TRAJ = TrajectorySplineGenerator(sample_rate=data_rate, 
+                                         double_pend=double_pend)
 
     return DQ, ClassSM, CT, TRAJ
 
@@ -91,27 +93,27 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TRAJ, logger_dict,
         CT.update_cadence(datum)
 
         # Update target angle
-        tgt_angle = TRAJ.get_pos_setpoint(CT.steps_per_window, 
-                                          CT.TIME_WINDOW,
-                                          CT.time_till_step)[0]
+        el_angle, sh_angle = TRAJ.get_pos_setpoint(CT.steps_per_window, 
+                                                   CT.TIME_WINDOW,
+                                                   CT.time_till_step)
 
         #TODO: DEBUGGING: Add GUI HOOKS
-        if (state != ClassSM.STATE):
-            print(f"STATE: {ClassSM.STATE}")
-            state = ClassSM.STATE
-        if (step_count != CT.step_count):
-            print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}, " 
-                f"SPW {CT.steps_per_window}")
-            step_count = CT.step_count
+        # if (state != ClassSM.STATE):
+        #     print(f"STATE: {ClassSM.STATE}")
+        #     state = ClassSM.STATE
+        # if (step_count != CT.step_count):
+        #     print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}, " 
+        #         f"SPW {CT.steps_per_window}")
+        step_count = CT.step_count
         
         logger_dict["logstates"].append(ClassSM.STATE)
         logger_dict["steps"].append(CT.step_count)
 
-        return tgt_angle, state, CT.step_count
+        return el_angle, sh_angle, state, CT.step_count
     else:
         logger_dict["logstates"].append("booting_up")
         logger_dict["steps"].append(0)
-        return TRAJ.angle, state, CT.step_count
+        return TRAJ.angle, TRAJ.sh_angle, state, CT.step_count
 
 
 def sil_main(datafile, graph_title, params):
@@ -132,9 +134,11 @@ def sil_main(datafile, graph_title, params):
 
     # Make return log for playback
     logger_dict = {"logname": os.path.basename(datafile),
-                   "logstates": [],
-                   "theta1": [],
-                   "steps": []}
+                    "logstates": [],
+                    "theta1": [],
+                    "steps": []}
+    if params.get("double_pend", False):
+        logger_dict["theta2"] = []
 
     #Execution Loop
     state = 'unknown'
@@ -142,14 +146,19 @@ def sil_main(datafile, graph_title, params):
     for i in range(len(time_steps)):
         #Get measurements
         accel_measure = accel_measures[i]
-        tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
+        el_angle, sh_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
                                                 ClassSM, CT, TRAJ, logger_dict,
                                                 state, step_count, 
                                                 time_steps[i])
         # TODO Add simple noise model to represent encoder precision
-        TRAJ.angle = tgt_angle
-        logger_dict["theta1"].append(tgt_angle*2*np.pi)
-    
+        TRAJ.angle = el_angle
+        TRAJ.sh_angle = sh_angle
+        if sh_angle is None:
+            logger_dict["theta1"].append(el_angle*2*np.pi)
+        else:
+            logger_dict["theta1"].append(sh_angle*2*np.pi)
+            logger_dict["theta2"].append(el_angle*2*np.pi)
+
     return logger_dict
 
 
@@ -238,6 +247,9 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--look_up", action='store_true', 
         help="Flag in order to use the trajectory look-up table instead of the\
             trajectory spline generator")
+    parser.add_argument("-d", "--double_pend", action='store_true', 
+        help="Use the double pendulum model. This can only be used with \
+            trajectory spline generator (the look_up option is ignored")
     
     args = parser.parse_args()
     params = {'data_rate': args.data_rate,
@@ -248,7 +260,8 @@ if __name__ == "__main__":
               'ct_window': args.window,
               'ct_method': args.method,
               'time_limit': args.time_limit,
-              'use_lookup': args.look_up}
+              'use_lookup': args.look_up and (not args.double_pend),
+              "double_pend": args.double_pend}
     
 
     if args.port:
@@ -261,5 +274,5 @@ if __name__ == "__main__":
     else:
         # playback from logfile
         logger_dict = sil_main(args.imu_source, args.title, params)
-        app = PendulumGUI(False)
+        app = PendulumGUI(double_pend=args.double_pend)
         app.run_playback(logger_dict)
