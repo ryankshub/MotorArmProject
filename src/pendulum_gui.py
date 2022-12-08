@@ -30,13 +30,13 @@ class PendulumGUI:
 
         pygame.init()
         # Build Scenery
-        self.width = 800
-        self.height = 500
+        self.width = 1600
+        self.height = 1000
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill(pygame.Color('gray'))
 
         # Set up Font
-        self.font = pygame.font.SysFont(None, 38)
+        self.font = pygame.font.SysFont(None, 70)
 
         # Set Up Menu
         self.log_box = gw.Textbox(self.font, (20, 20))
@@ -52,19 +52,19 @@ class PendulumGUI:
                 "Reset", "forestgreen", "forestgreen")
 
         # Set up Status Panel
-        self.state_box = gw.Textbox(self.font, (520, 150), "State: ")
+        self.state_box = gw.Textbox(self.font, (1040, 300), "State: ")
         step_count_pos = (self.state_box.bottomleft[0], 
             self.state_box.bottomleft[1] + 30)
         self.step_count_box = gw.Textbox(self.font, step_count_pos, 
             "Step Count: ", "0")
 
         # Set up Pendulum
-        self.pivot = gw.Ball((250, 225), 5, 'black')
-        self.first_line = gw.Line(75, 'black', 13)
-        self.first_ball = gw.Ball((250, 300), 12, 'red', 2, 'black')
+        self.pivot = gw.Ball((500, 450), 5, 'black')
+        self.first_line = gw.Line(150, 'black', 26)
+        self.first_ball = gw.Ball((500, 600), 24, 'red', 4, 'black')
         if self.double_pend:
-            self.second_line = gw.Line(75, 'black', 13)
-            self.second_ball = gw.Ball((250, 375), 12, 'red', 2, 'black')
+            self.second_line = gw.Line(150, 'black', 26)
+            self.second_ball = gw.Ball((500, 750), 24, 'red', 4, 'black')
 
 
     def draw(self):
