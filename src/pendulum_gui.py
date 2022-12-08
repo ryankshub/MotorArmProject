@@ -60,10 +60,10 @@ class PendulumGUI:
 
         # Set up Pendulum
         self.pivot = gw.Ball((250, 225), 5, 'black')
-        self.first_line = gw.Line(75, 'black', 11)
+        self.first_line = gw.Line(75, 'black', 13)
         self.first_ball = gw.Ball((250, 300), 12, 'red', 2, 'black')
         if self.double_pend:
-            self.second_line = gw.Line(75, 'black', 11)
+            self.second_line = gw.Line(75, 'black', 13)
             self.second_ball = gw.Ball((250, 375), 12, 'red', 2, 'black')
 
 
