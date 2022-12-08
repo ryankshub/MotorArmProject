@@ -2,11 +2,56 @@
 
 Currently a work-in-progress
 
-## Setup:
+*Brief description of project*
 
-1. Ensure you're using odrive == 0.5.4 version
-2. Disconnect every peripheral except USB and power
-3. Run `odrivetool dfu`; Respond yes to both prompts
-4. Reattach peripherals 
-5. run `config/arm_config.py`; this only has to be run once. 
-6. If you hear the motor running and it resist motion; you're good
+*IMG of entire pipeline*
+
+*Explaination of Classifier*
+
+*Explaination of Cadence Tracker*
+
+*Explaination of Trajectory Look Up*
+
+*Explaination of Trajectory Spline Generator*
+
+## Running the project
+
+*Explaination of run_sil script*
+- with and without IMU
+- playback and live
+
+## Setup
+
+* Dependencies 
+* Installation instructions for each dependency
+
+## Training a Classifier
+
+* How Knn works
+* Img of feature space
+* how to run train_knn script
+
+## Data Handling
+
+* Walk-through of SIM file format 
+
+### Importing established data
+
+* Walk through parsers
+
+### Logging live data
+
+* Explain read_imu script
+
+## Using the GUI
+
+* Img of GUI
+* Waling through test_animation script
+
+## Analysis Tools
+
+* Walkthrough of helpful scripts
+
+## IMU Interface code
+
+* How to use raspberry pico code for IMU
