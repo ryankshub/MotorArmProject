@@ -5,7 +5,7 @@ Runs Software-in-the-loop simulation with application
 
 # Project import
 from src import CadenceTracker, ClassifierSM, DataQueue, \
-    PendulumGUI, TrajectoryLookUp
+    PendulumGUI, TrajectoryLookUp, TrajectorySplineGenerator
 from utils import parse_mt_file, read_imu
 # Python import
 import argparse
@@ -39,20 +39,23 @@ def object_setup(params):
     CT = CadenceTracker(data_rate_Hz=data_rate, time_window_s=ct_window,
         method=ct_method)
 
-    # Create Trajectory Look-Up
-    profiles = {0.8: 'data/template_data/08ms.csv',
-                0.9: 'data/template_data/09ms.csv',
-                1.0: 'data/template_data/10ms.csv',
-                1.1: 'data/template_data/11ms.csv',
-                1.2: 'data/template_data/12ms.csv',
-                1.3: 'data/template_data/13ms.csv',
-                1.4: 'data/template_data/14ms.csv'}
-    TLU = TrajectoryLookUp(profiles=profiles)
+    if params.get('use_look', False):
+        # Create Trajectory Look-Up
+        profiles = {0.8: 'data/template_data/08ms.csv',
+                    0.9: 'data/template_data/09ms.csv',
+                    1.0: 'data/template_data/10ms.csv',
+                    1.1: 'data/template_data/11ms.csv',
+                    1.2: 'data/template_data/12ms.csv',
+                    1.3: 'data/template_data/13ms.csv',
+                    1.4: 'data/template_data/14ms.csv'}
+        TRAJ = TrajectoryLookUp(profiles=profiles)
+    else:
+        TRAJ = TrajectorySplineGenerator(sample_rate=data_rate)
 
-    return DQ, ClassSM, CT, TLU
+    return DQ, ClassSM, CT, TRAJ
 
 
-def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, logger_dict, 
+def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TRAJ, logger_dict, 
     state, step_count, time_step = -1):
     """
     Main execution loop
@@ -88,15 +91,17 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, logger_dict,
         CT.update_cadence(datum)
 
         # Update target angle
-        tgt_angle = TLU.get_pos_setpoint(CT.steps_per_window, CT.TIME_WINDOW)
+        tgt_angle = TRAJ.get_pos_setpoint(CT.steps_per_window, 
+                                          CT.TIME_WINDOW,
+                                          CT.time_till_step)[0]
 
         #TODO: DEBUGGING: Add GUI HOOKS
         if (state != ClassSM.STATE):
             print(f"STATE: {ClassSM.STATE}")
             state = ClassSM.STATE
         if (step_count != CT.step_count):
-            print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}")
-            print(f"SPW {CT.steps_per_window}")
+            print(f"TIME: {time_step}, STEP COUNT: {CT.step_count}, " 
+                f"SPW {CT.steps_per_window}")
             step_count = CT.step_count
         
         logger_dict["logstates"].append(ClassSM.STATE)
@@ -106,12 +111,12 @@ def exe_loop(accel_measure, data_rate, DQ, ClassSM, CT, TLU, logger_dict,
     else:
         logger_dict["logstates"].append("booting_up")
         logger_dict["steps"].append(0)
-        return TLU.angle, state, CT.step_count
+        return TRAJ.angle, state, CT.step_count
 
 
 def sil_main(datafile, graph_title, params):
     # Set objects
-    DQ, ClassSM, CT, TLU = object_setup(params)
+    DQ, ClassSM, CT, TRAJ = object_setup(params)
 
     # Get input rate
     data_rate = params.get('data_rate', 100)
@@ -138,11 +143,11 @@ def sil_main(datafile, graph_title, params):
         #Get measurements
         accel_measure = accel_measures[i]
         tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
-                                                ClassSM, CT, TLU, logger_dict,
+                                                ClassSM, CT, TRAJ, logger_dict,
                                                 state, step_count, 
                                                 time_steps[i])
         # TODO Add simple noise model to represent encoder precision
-        TLU.angle = tgt_angle
+        TRAJ.angle = tgt_angle
         logger_dict["theta1"].append(tgt_angle*2*np.pi)
     
     return logger_dict
@@ -150,7 +155,7 @@ def sil_main(datafile, graph_title, params):
 
 def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
     # Set objects
-    DQ, ClassSM, CT, TLU = object_setup(params)
+    DQ, ClassSM, CT, TRAJ = object_setup(params)
 
     # Get input rate
     data_rate = params.get('data_rate', 100)
@@ -172,17 +177,18 @@ def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
     angles_log = []
     infinite_loop = time_limit < 0
     start_time = time.time()
-    while(infinite_loop | time.time() - start_time < time_limit):
+    while(infinite_loop | (time.time() - start_time < time_limit)):
         ax, ay, az = read_imu(ser)
         accel_measure = np.sqrt(
             np.sum( np.power([float(ax), float(ay), float(az)], 2) ) 
             )
         tgt_angle, state, step_count = exe_loop(accel_measure, data_rate, DQ, 
-                                                ClassSM, CT, TLU, logger_dict,
+                                                ClassSM, CT, TRAJ, logger_dict,
                                                 state, step_count)
         # TODO Add simple noise model to represent encoder precision
-        TLU.angle = tgt_angle
-        
+        TRAJ.angle = tgt_angle
+        logger_dict["theta1"].append(tgt_angle*2*np.pi)
+
         if gui_update_fcn is not None:
             gui_update_fcn(logger_dict['logstates'].pop(),
                            logger_dict['steps'].pop(),
@@ -229,6 +235,9 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--time_limit", type=float, default=30.0, 
         help="Only applies to live run, time_limit of the run. For an endless\
              run, set time_limit negative")
+    parser.add_argument("-l", "--look_up", action='store_true', 
+        help="Flag in order to use the trajectory look-up table instead of the\
+            trajectory spline generator")
     
     args = parser.parse_args()
     params = {'data_rate': args.data_rate,
@@ -238,14 +247,16 @@ if __name__ == "__main__":
               'csm_window': args.window,
               'ct_window': args.window,
               'ct_method': args.method,
-              'time_limit': args.time_limit}
+              'time_limit': args.time_limit,
+              'use_lookup': args.look_up}
     
 
     if args.port:
         # live operation 
         app = PendulumGUI(False)
-        app.setup_live()
-        live_sil_main(args.imu_source, params, app.live_update)
+        #app.setup_live()
+        #live_sil_main(args.imu_source, params, gui_update_fcn=app.live_update)
+        print("KILL ME")
         app.await_death()
     else:
         # playback from logfile

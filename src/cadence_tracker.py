@@ -90,10 +90,10 @@ class CadenceTracker():
         return self._steps_per_window
 
     @property
-    def time_to_step(self):
+    def time_till_step(self):
         """
         """
-        return self._time_to_step
+        return self._time_till_step
 
     @property
     def TIME_WINDOW(self):
@@ -173,7 +173,7 @@ class CadenceTracker():
 
         # Time to end cals
         time_to_end = self._TIME_WINDOW_S - self._latest_peak*self._TIME_STEP
-        time_till_step = avg_time_btw_step - time_to_end
+        self._time_till_step = avg_time_btw_step - time_to_end
 
         # steps per window
         if self._METHOD == "direct":

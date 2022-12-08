@@ -34,6 +34,7 @@ class TrajectorySplineGenerator:
         self._time_normalizer = 30
         self._HOME_RATE = .001 # in rev/sample
         self._DEGREE_THRES = .005 # in rev
+        self._MIN_TIME_NEEDED = 0.2 
 
         # NOTE: The following constants are based on information from:
         # Perry J, Burnfield JM.
@@ -117,7 +118,8 @@ class TrajectorySplineGenerator:
         # Get max velocity
         angle_disp = target_angle - current_angle
         max_vel = 2*angle_disp/self.time_till_step
-
+        print(f"TARGET_ANGLE {360*target_angle}, CURRENT_ANGLE {360*current_angle}, "
+            f"ANGLE_DISP {360*angle_disp}, MAX_VEL {360*max_vel}, TIME TILL STEP {self.time_till_step}")
         # Get the point where trajectory should hit maximum velocity
         # For this algorithm it's the half-way point
         half_samp = int(self.time_till_step*self.sample_rate*.5)
@@ -217,6 +219,11 @@ class TrajectorySplineGenerator:
         # walking behavior
         self.time_till_step = time_till_step
         if len(self._el_trajectory) == 0:
+
+            # If we are looking for a step, wait for a bit
+            if self.time_till_step <= self._MIN_TIME_NEEDED:
+                return self._elbow_angle, None
+ 
             # Elbow flex angle
             est_speed = self._conv_step_speed(steps, time_window)
             elbow_flex = self.get_elbow_flex_angle(est_speed)
@@ -224,11 +231,13 @@ class TrajectorySplineGenerator:
             # Generate new trajectory
             if abs(elbow_flex - self._elbow_angle) < self._DEGREE_THRES:
                 # Swing backward
+                print("SWING BACKWARDS")
                 self._el_trajectory = \
                     self.generate_trajectory(self._ELBOW_MAX_EXT,
                                              self._elbow_angle)
             else:
                 # Swing Forward
+                print("SWING FORWARDS")
                 self._el_trajectory = \
                     self.generate_trajectory(elbow_flex, 
                                              self._elbow_angle)
@@ -275,6 +284,9 @@ class TrajectorySplineGenerator:
             # walking behavior
             self.time_till_step = time_till_step
             if len(self._el_trajectory) == 0:
+                # If we are looking for a step, wait for a bit
+                if self.time_till_step <= 0.0:
+                    return self._elbow_angle, self._shoulder_angle
                 # Elbow flex angle
                 est_speed = self._conv_step_speed(steps, time_window)
                 elbow_flex = self.get_elbow_flex_angle(est_speed)
