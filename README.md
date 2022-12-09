@@ -78,7 +78,7 @@ three features and assign the fragment a label representing the activity being
 performed at the time. These new features are collected into a feature set, 
 a collection of points in the feature space with assigned labels. 
 
-*Img of feature space*
+![Multi-label feature space](docs/Images/RKS_FINAL_MULTI_Feat_crop.png)
 
 During execution, a KNN classifier takes an input of acceleration data, extracts 
 the features and, plots this new point in the feature space. It then compares 
