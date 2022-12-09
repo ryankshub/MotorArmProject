@@ -48,16 +48,41 @@ void init_i2c_hw(void);
 //Configuration Function
 void init_device(void);
 
-//Read Fcn
+/*
+Read acceleration and gyroscope data from the mpu6050
+
+Args:
+    accel[] - array to pipe acceleration values into
+    gyro[] - array to pipe gyroscope values into
+*/
 void read_data(float accel[3], float gyro[3]);
 
-//Read Fcn for accel only
+/*
+Reads only acceleration values from the mpu6050
+
+Args:
+    accel[] - array to pipe acceleration values into
+*/
 void read_accel_data(float accel[3]);
 
-//Convert Acceleration data
+/*
+Convert the six 8-bits numbers from the mpu6050 into 3 floats representing
+acceleration for x, y, and z direction
+
+Args:
+    accel[] - array to pipe acceleration values into
+    read_buf[] - array containing bytes from the mpu6050
+*/
 float convert_accel(float accel[3], uint8_t read_buf[6]);
 
-//Convert Gyroscope data
+/*
+Convert the six 8-bits numbers from the mpu6050 into 3 floats representing
+gyroscope readings for x, y, and z direction
+
+Args:
+    gyro[] - array to pipe acceleration values into
+    read_buf[] - array containing bytes from the mpu6050
+*/
 float convert_gyro(float gyro[3], uint8_t read_buf[6]);
 
 #endif

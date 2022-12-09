@@ -7,6 +7,10 @@ Main file for pico code
 #include "pico/binary_info.h"
 #include "i2c_m050_imu.h"
 
+/*
+Repeating timer that reads the acceleration values from the mpu6050 and sends
+them over serial
+*/
 bool read_accel_callback(repeating_timer_t *t) {
     float accel_arr[3];
     read_accel_data(accel_arr);

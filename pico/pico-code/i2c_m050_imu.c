@@ -39,7 +39,11 @@ void init_device(void) {
 }
 
 /*
- 
+Read acceleration and gyroscope data from the mpu6050
+
+Args:
+    accel[] - array to pipe acceleration values into
+    gyro[] - array to pipe gyroscope values into
 */
 void read_data(float accel[3], float gyro[3]){
     uint8_t read_buf[6]; // buffer for reading values
@@ -62,7 +66,10 @@ void read_data(float accel[3], float gyro[3]){
 }
 
 /*
+Reads only acceleration values from the mpu6050
 
+Args:
+    accel[] - array to pipe acceleration values into
 */
 void read_accel_data(float accel[3]){
     uint8_t read_buf[6]; // buffer for reading values
@@ -76,6 +83,14 @@ void read_accel_data(float accel[3]){
     convert_accel(accel, read_buf);
 }
 
+/*
+Convert the six 8-bits numbers from the mpu6050 into 3 floats representing
+acceleration for x, y, and z direction
+
+Args:
+    accel[] - array to pipe acceleration values into
+    read_buf[] - array containing bytes from the mpu6050
+*/
 float convert_accel(float accel[3], uint8_t read_buf[6]){
     for(int i = 0; i < 3; i++) {
         int16_t accel_val = (read_buf[i*2] << 8 | read_buf[i*2 + 1]);
@@ -85,6 +100,14 @@ float convert_accel(float accel[3], uint8_t read_buf[6]){
 
 }
 
+/*
+Convert the six 8-bits numbers from the mpu6050 into 3 floats representing
+gyroscope readings for x, y, and z direction
+
+Args:
+    gyro[] - array to pipe acceleration values into
+    read_buf[] - array containing bytes from the mpu6050
+*/
 float convert_gyro(float gyro[3], uint8_t read_buf[6]){
     for(int i = 0; i < 3; i++) {
         int16_t gyro_val = (read_buf[i*2] << 8 | read_buf[i*2 + 1]);
