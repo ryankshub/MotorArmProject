@@ -4,6 +4,7 @@
 # This file is based off configuration from Yael Ben Shalom's Motorized-Prosthetic-Arm
 # Link here: https://github.com/YaelBenShalom/Motorized-Prosthetic-Arm/blob/master/setup.py
 # Modified: 07-13-2022
+# This file is for configuring the odrive arm v3.5
 ####
 
 # Set up for T-motor R60 KV115:
