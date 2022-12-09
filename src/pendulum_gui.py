@@ -28,43 +28,51 @@ class PendulumGUI:
         self.double_pend = double_pend
         self.live = live
 
+        #Should gui die
+        self._death = False
+
         pygame.init()
         # Build Scenery
-        self.width = 1600
-        self.height = 1000
+        self.width = 800
+        self.height = 500
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill(pygame.Color('gray'))
 
         # Set up Font
-        self.font = pygame.font.SysFont(None, 70)
+        self.font = pygame.font.SysFont(None, 38)
 
         # Set Up Menu
         self.log_box = gw.Textbox(self.font, (20, 20))
-        if not self.live:
-            play_pos = (self.log_box.bottomleft[0], self.log_box.bottomleft[1] + 40)
-            self.play = gw.Button(self.font, play_pos, 
-                "Play", "dodgerblue1", "dodgerblue1")
-            pause_pos = (self.play.topright[0] + 40, self.play.topright[1])
-            self.pause = gw.Button(self.font, pause_pos, 
-                "Pause", "firebrick3", "firebrick3")
-            reset_pos = (self.pause.topright[0] + 40, self.pause.topright[1])
-            self.reset = gw.Button(self.font, reset_pos, 
-                "Reset", "forestgreen", "forestgreen")
+        play_pos = (self.log_box.bottomleft[0], self.log_box.bottomleft[1] + 40)
+        self.play = gw.Button(self.font, play_pos, 
+            "Play", "dodgerblue1", "dodgerblue1")
+        pause_pos = (self.play.topright[0] + 40, self.play.topright[1])
+        self.pause = gw.Button(self.font, pause_pos, 
+            "Pause", "firebrick3", "firebrick3")
+        reset_pos = (self.pause.topright[0] + 40, self.pause.topright[1])
+        self.reset = gw.Button(self.font, reset_pos, 
+            "Reset", "forestgreen", "forestgreen")
+
+        # If live disable buttons
+        if self.live:
+            self.play.deactivate()
+            self.pause.deactivate()
+            self.reset.deactivate()
 
         # Set up Status Panel
-        self.state_box = gw.Textbox(self.font, (1040, 300), "State: ")
+        self.state_box = gw.Textbox(self.font, (520, 150), "State: ")
         step_count_pos = (self.state_box.bottomleft[0], 
             self.state_box.bottomleft[1] + 30)
         self.step_count_box = gw.Textbox(self.font, step_count_pos, 
             "Step Count: ", "0")
 
         # Set up Pendulum
-        self.pivot = gw.Ball((500, 450), 5, 'black')
-        self.first_line = gw.Line(150, 'black', 26)
-        self.first_ball = gw.Ball((500, 600), 24, 'red', 4, 'black')
+        self.pivot = gw.Ball((250, 225), 5, 'black')
+        self.first_line = gw.Line(75, 'black', 26)
+        self.first_ball = gw.Ball((250, 300), 12, 'red', 4, 'black')
         if self.double_pend:
-            self.second_line = gw.Line(150, 'black', 26)
-            self.second_ball = gw.Ball((500, 750), 24, 'red', 4, 'black')
+            self.second_line = gw.Line(75, 'black', 26)
+            self.second_ball = gw.Ball((250, 375), 12, 'red', 4, 'black')
 
 
     def draw(self):
@@ -76,10 +84,9 @@ class PendulumGUI:
 
         # Menu
         self.log_box.draw(self.screen)
-        if not self.live:
-            self.play.draw(self.screen)
-            self.pause.draw(self.screen)
-            self.reset.draw(self.screen)
+        self.play.draw(self.screen)
+        self.pause.draw(self.screen)
+        self.reset.draw(self.screen)
 
         # Status Panel
         self.state_box.draw(self.screen)
@@ -93,6 +100,9 @@ class PendulumGUI:
                 self.second_ball.pos)
             self.second_ball.draw(self.screen)
         self.first_ball.draw(self.screen)
+
+        # Update canvas
+        pygame.display.flip()
 
 
     def run_playback(self, logs_dict, fps=100):
@@ -163,7 +173,6 @@ class PendulumGUI:
             self.draw()
 
             # Update
-            pygame.display.flip()
             clock.tick(fps)
 
         pygame.quit()
@@ -191,6 +200,12 @@ class PendulumGUI:
             num theta2: if a double_pendulum simulation, angle of the second
                 link (in radians). 
         """
+
+        # Check for death
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self._death = True
+
         # Update class_state and step count
         self._update_status_panel(class_state, steps)
 
@@ -203,24 +218,27 @@ class PendulumGUI:
         # Draw and update Gui
         self.draw()
 
+        return not self._death
+
 
     def await_death(self):
         """
         Disable gui and wait for user to close gui
         """
-        # Add logname
-        self.log_box.dyn_text = f"Session Over. Close Gui"
+        if not self._death:
+            # Add logname
+            self.log_box.dyn_text = f"Session Over. Close Gui"
 
-        running = True
-        while running:
-            #Check events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = True
+            while running:
+                #Check events
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
 
-            # Draw and update Gui
-            self.draw()
-        
+                # Draw and update Gui
+                self.draw()
+            
         pygame.quit()
 
 
