@@ -6,8 +6,9 @@ File for Trajectory Look-up Class
 # Project Import
 
 # Python Import
-import pandas as pd
+
 # 3rd-Party Import
+import pandas as pd
 
 class TrajectoryLookUp():
     """

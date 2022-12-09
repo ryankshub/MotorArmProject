@@ -233,7 +233,7 @@ def _check_threshold(arg):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run software in the loop simulation')
-    parser.add_argument('imu_source', type=str, help="Source of IMU data to test software with. \
+    parser.add_argument('data_source', type=str, help="Source of accel data to test software with. \
         use --port arg to specify IMU port, else use filepath to logfile")
     parser.add_argument('modelfile', type=str, help="Model file of classifier to run with")
     parser.add_argument('-g', '--title', type=str, default="SIL Results", help="Graph title of SIL Results")
@@ -278,14 +278,14 @@ if __name__ == "__main__":
     if args.port:
         # live operation
         if args.headless:
-            live_sil_main(args.imu_source, params)
+            live_sil_main(args.data_source, params)
         else:
             app = PendulumGUI(double_pend=args.double_pend, live=True)
             app.setup_live()
-            live_sil_main(args.imu_source, params, gui_update_fcn=app.live_update)
+            live_sil_main(args.data_source, params, gui_update_fcn=app.live_update)
             app.await_death()
     else:
         # playback from logfile
-        logger_dict = sil_main(args.imu_source, args.title, params)
+        logger_dict = sil_main(args.data_source, args.title, params)
         app = PendulumGUI(double_pend=args.double_pend)
         app.run_playback(logger_dict)
