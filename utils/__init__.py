@@ -16,4 +16,4 @@ def x_version():
     """
     Return current software version
     """
-    return "v0.12"
+    return "v0.3"
