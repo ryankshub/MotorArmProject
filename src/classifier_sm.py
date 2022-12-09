@@ -47,7 +47,7 @@ class ClassifierSM:
 
         ## Set Constants
         self._STILL_STATE = "waiting"
-        self._STILL_STATE_THRES = 0.2 # minimum signal power to classify
+        self._STILL_STATE_THRES = 0.30 # minimum signal power to classify
         # state when classification confidence is below threshold
         self._UNKNOWN_STATE = "unknown" 
         self._STATE = self._UNKNOWN_STATE
@@ -152,7 +152,7 @@ class ClassifierSM:
         probs = self._model.predict_proba(feat_df)[0]
         idx = np.argmax(probs)
         if feat_dict["Intensity"][0] < self._STILL_STATE_THRES:
-            self._STATE = self._STILL_STATE_THRES
+            self._STATE = self._STILL_STATE
         elif probs[idx] > self._threshold:
             self._STATE = self._lables[idx]
         else:

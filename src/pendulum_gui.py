@@ -34,16 +34,16 @@ class PendulumGUI:
 
         pygame.init()
         # Build Scenery
-        self.width = 800
-        self.height = 500
+        self.width = 1600
+        self.height = 1000
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill(pygame.Color('gray'))
 
         # Set up Font
-        self.font = pygame.font.SysFont(None, 38)
+        self.font = pygame.font.SysFont(None, 70)
 
         # Set Up Menu
-        self.log_box = gw.Textbox(self.font, (20, 20))
+        self.log_box = gw.Textbox(self.font, (40, 40))
         play_pos = (self.log_box.bottomleft[0], self.log_box.bottomleft[1] + 40)
         self.play = gw.Button(self.font, play_pos, 
             "Play", "dodgerblue1", "dodgerblue1")
@@ -61,19 +61,20 @@ class PendulumGUI:
             self.reset.deactivate()
 
         # Set up Status Panel
-        self.state_box = gw.Textbox(self.font, (520, 150), "State: ")
+        self.state_box = gw.Textbox(self.font, (1040, 300), "State: ")
         step_count_pos = (self.state_box.bottomleft[0], 
             self.state_box.bottomleft[1] + 30)
         self.step_count_box = gw.Textbox(self.font, step_count_pos, 
             "Step Count: ", "0")
 
         # Set up Pendulum
-        self.pivot = gw.Ball((250, 225), 5, 'black')
-        self.first_line = gw.Line(75, 'black', 26)
-        self.first_ball = gw.Ball((250, 300), 12, 'red', 4, 'black')
+        self.swing_msg = gw.Textbox(self.font, (320, 350), "Forward swing <-")
+        self.pivot = gw.Ball((500, 450), 5, 'black')
+        self.first_line = gw.Line(150, 'black', 26)
+        self.first_ball = gw.Ball((500, 600), 24, 'red', 4, 'black')
         if self.double_pend:
-            self.second_line = gw.Line(75, 'black', 26)
-            self.second_ball = gw.Ball((250, 375), 12, 'red', 4, 'black')
+            self.second_line = gw.Line(150, 'black', 26)
+            self.second_ball = gw.Ball((500, 750), 24, 'red', 4, 'black')
 
 
     def draw(self):
@@ -94,6 +95,7 @@ class PendulumGUI:
         self.step_count_box.draw(self.screen)
 
         # Pendulum
+        self.swing_msg.draw(self.screen)
         self.first_line.draw(self.screen, self.pivot.pos, self.first_ball.pos)
         self.pivot.draw(self.screen)
         if self.double_pend:

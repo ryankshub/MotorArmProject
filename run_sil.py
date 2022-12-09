@@ -207,12 +207,12 @@ def live_sil_main(port, params, baudrate=115200, gui_update_fcn=None):
             if sh_angle is None:
                 running = gui_update_fcn(ClassSM.STATE, 
                                          CT.step_count, 
-                                         el_angle)
+                                         el_angle*2*np.pi)
             else:
                 running = gui_update_fcn(ClassSM.STATE, 
                                          CT.step_count, 
-                                         sh_angle, 
-                                         el_angle)
+                                         sh_angle*2*np.pi, 
+                                         el_angle*2*np.pi)
     ser.close()
 
 
