@@ -18,7 +18,6 @@ import pandas as pd
 from scipy import signal, stats
 
 
-
 def apply_filter(data, fs, filter_order, filter_type, cutoff_freq):
     """
     Apply butterworth filter of certain type
@@ -58,9 +57,16 @@ def apply_zero_phase_filter(data, fs, filter_order, filter_type, cutoff_freq):
 
 def build_training_set(data_directory, plot_feat=False, binary_class=False):
     """
-    TODO
-    """
+    Creates features from training data in certain directory
 
+    Args:
+        string data_directory - directory containing training data
+        bool plot_feat - if true, plot the feature space
+        bool binary_class - if true, forms a binary classifier training set 
+            where any label != 'walking' is replaced with the label 'ADL'
+    Rtn:
+        pandas.DataFrame of labeled features
+    """
     # Parse files
     samples, labels, rates = fill_samples(data_directory)
 
@@ -128,7 +134,19 @@ def extract_feat(samples, label, enum_label, fs=100, entropy=True):
 
 def fill_samples(dir):
     """
-    TODO
+    Parses file is training set directory and return time sample slices with 
+    their corresponding label and sample rate
+
+    Args:
+        string dir - directory containing training data
+
+    Rtns:
+        array of acceleration data arrays: samples - slices from logged data
+            reflecting an input into the classifier
+        array of strings: labels - the corresponding label(activity) to the 
+            input samples
+        array of nums: rates - the corresponding sample rates of the input
+            samples
     """
     samples = []
     labels = []
@@ -153,7 +171,7 @@ def fill_samples(dir):
 
 def get_prec_and_recall(label_matrix, labels):
     """
-    TODO
+    Calculate the precision and recall from a confusion matrix
     """
     metric_dict = {}
     elems_predicted = label_matrix.sum(0)
@@ -181,7 +199,7 @@ def get_prec_and_recall(label_matrix, labels):
 
 def plot_features(features, plot3D=True):
     """
-    TODO
+    Plot feature space
     """
     label_vals = features["Label"].unique()
     # Set up Figures and Axes
@@ -250,6 +268,26 @@ def plot_features(features, plot3D=True):
     plt.show()
 
 
+def read_imu(ser_obj, debug=False):
+    """
+    Parse data from the IMU
+
+    Args:
+        PySerial Serial - port connected to IMU
+
+    Returns:
+        floats(3) Accelerations for the x, y, and z direction
+    
+    Note:
+        This fcn blocks until all read numbers are read 
+    """
+    data_read = ser_obj.read_until(b'\n')
+    if (debug):
+        print(data_read)
+    data_read = str(data_read,'utf-8')
+    return [float(i) for i in data_read.split()] 
+
+
 def shred_data(data_dict, samples=None, interval=3.0, time_key="Time_s", data_key="AccM"):
     """
     Convert time series data into shreds of interval length. 
@@ -292,23 +330,3 @@ def shred_data(data_dict, samples=None, interval=3.0, time_key="Time_s", data_ke
         rtn_array = samples + rtn_array
     
     return rtn_array
-
-
-def read_imu(ser_obj, debug=False):
-    """
-    Parse data from the IMU
-
-    Args:
-        PySerial Serial - port connected to IMU
-
-    Returns:
-        floats(3) Accelerations for the x, y, and z direction
-    
-    Note:
-        This fcn blocks until all read numbers are read 
-    """
-    data_read = ser_obj.read_until(b'\n')
-    if (debug):
-        print(data_read)
-    data_read = str(data_read,'utf-8')
-    return [float(i) for i in data_read.split()] 
