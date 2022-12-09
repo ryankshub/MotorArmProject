@@ -22,65 +22,80 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal, stats
 
-
+COUNT = 0
 def plot_profile(filename, data, end_time, window_len, 
     lowpass, order, cutoff, sample_rate):
     """
     """
-    # Make subplot
-    fig, axs = plt.subplots(3,1)
-    fig.suptitle(f"{filename} at {end_time}")
+    global COUNT
+    if COUNT == 0:
+        # Make subplot
+        fig, axs = plt.subplots(3,1)
+        fig.suptitle(f"{filename} at {end_time}")
 
-    # Plot raw data
-    start_time = end_time - window_len
-    time_axis = np.linspace(start_time, end_time, num=len(data))
-    axs[0].plot(time_axis, data, label="Raw Data")
-    axs[0].set_title("Acceleration data")
-    axs[0].set_xlabel("Time (sec)")
-    axs[0].set_ylabel("Accel Mag (m/s^2)")
+        # Plot raw data
+        start_time = end_time - window_len
+        time_axis = np.linspace(start_time, end_time, num=len(data))
+        axs[0].plot(time_axis, data, label="Raw Data")
+        axs[0].set_title("Acceleration data")
+        axs[0].set_xlabel("Time (sec)")
+        axs[0].set_ylabel("Accel Mag (m/s^2)")
 
-    # Plot filter data
-    if lowpass:
-        filtered_data = apply_filter(data, sample_rate, 
-            order, 'lowpass', cutoff)
-    else:
-        filtered_data = apply_zero_phase_filter(data, sample_rate, 
-            order, 'lowpass', cutoff)
-    peak_height_threshold = np.sort(filtered_data)[-2]
-    peak_height_threshold = peak_height_threshold*.8
-    axs[1].plot(time_axis, filtered_data, label="Filtered Data")
-    peaks, _ = signal.find_peaks(filtered_data, height=peak_height_threshold)
-    axs[1].plot(time_axis[peaks], filtered_data[peaks], "x")
-    axs[1].set_title("Filtered Acceleration")
-    axs[1].set_xlabel("Time (sec)")
-    axs[1].set_ylabel("Accel Mag (m/s^2)")
+        # Plot filter data
+        if lowpass:
+            filtered_data = apply_filter(data, sample_rate, 
+                order, 'lowpass', cutoff)
+        else:
+            filtered_data = apply_zero_phase_filter(data, sample_rate, 
+                order, 'lowpass', cutoff)
+        peak_height_threshold = filtered_data.max()*.8
+        axs[1].plot(time_axis, filtered_data, label="Filtered Data")
+        peaks, _ = signal.find_peaks(filtered_data, 
+            distance=40)
+        valleys, _ = signal.find_peaks(-filtered_data, 
+            distance=40)
+        peak_diffs = []
+        for i in range(1, len(peaks)):
+            peak_diffs.append((peaks[i] - peaks[i-1])*.01)
+        peak_diffs = np.array(peak_diffs)
+        print(peak_diffs)
+        print(peak_diffs.mean())
+        axs[1].plot(time_axis[peaks], filtered_data[peaks], "x", label=f"latest peaks found {len(peaks)}")
+        axs[1].plot(time_axis[valleys], filtered_data[valleys], "o", label=f"latest valleys found {len(valleys)}")
+        axs[1].set_title("Filtered Acceleration")
+        axs[1].set_xlabel("Time (sec)")
+        axs[1].set_ylabel("Accel Mag (m/s^2)")
+        axs[1].legend()
 
-    # Plot freq domain
-    nPts = len(data)
-    f, Pxx = signal.welch(data, sample_rate, nperseg=nPts)
-    max_idx = np.argmax(Pxx)
-    pSum = sum(Pxx)
-    pNorm = Pxx/pSum
-    ent = stats.entropy(pNorm)
-    dom_freq = f[max_idx]
-    dom_power = Pxx[max_idx]
-    axs[2].plot(f, Pxx, color='orange')
-    axs[2].set_title("Frequency Domain")
-    axs[2].set_xlabel("Frequency")
-    axs[2].set_ylabel("Power")
-    axs[2].axvline(dom_freq, 
-        label=f"Dom Freq {dom_freq:.03f} w/power: {dom_power:.03f} & ent: {ent:.03f}", 
-        color='black')
-    axs[2].legend()
+        # Plot freq domain
+        nPts = len(data)
+        f, Pxx = signal.welch(data, sample_rate, nperseg=nPts)
+        max_idx = np.argmax(Pxx)
+        pSum = sum(Pxx)
+        pNorm = Pxx/pSum
+        ent = stats.entropy(pNorm)
+        dom_freq = f[max_idx]
+        dom_power = Pxx[max_idx]
+        axs[2].plot(f, Pxx, color='orange')
+        axs[2].set_title("Frequency Domain")
+        axs[2].set_xlabel("Frequency")
+        axs[2].set_ylabel("Power")
+        axs[2].axvline(dom_freq, 
+            label=f"Dom Freq {dom_freq:.03f} w/power: {dom_power:.03f} & ent: {ent:.03f}", 
+            color='black')
+        axs[2].legend()
 
-    plt.subplots_adjust(left=0.1,
-            bottom=0.1, 
-            right=0.9, 
-            top=0.9, 
-            wspace=0.4, 
-            hspace=0.6)
+        plt.subplots_adjust(left=0.1,
+                bottom=0.1, 
+                right=0.9, 
+                top=0.9, 
+                wspace=0.4, 
+                hspace=0.6)
 
-    plt.show()
+        plt.show()
+        COUNT = 100
+    else: 
+        COUNT -= 1
 
     
 if __name__ == "__main__":
@@ -101,9 +116,9 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--filter", type=str, default="non_causal", 
         choices=["lowpass", "non_causal"], help="type of filter to apply to \
         data.")
-    parser.add_argument("-o", "--order", type=int, default=4, help="Order of \
+    parser.add_argument("-o", "--order", type=int, default=3, help="Order of \
         filter")
-    parser.add_argument("-c", "--cutoff", type=float, default=10.0, help="Cutoff \
+    parser.add_argument("-c", "--cutoff", type=float, default=2.0, help="Cutoff \
         frequency of the filter")
     parser.add_argument("-w", "--window", type=float, default=3.0, help="Length \
         of the time window(in seconds). If window is -1.0, the whole file is used")
@@ -125,6 +140,7 @@ if __name__ == "__main__":
             raise Exception("Invalid File Format found")
         # Prep for plotting
         lowpass_bool = args.filter == "lowpass"
+
         if args.window < 0.0:
             window_time = data_dict['Time_s'][-1]
             plot_profile(filename, data_dict['AccM'], data_dict['Time_s'][-1],
