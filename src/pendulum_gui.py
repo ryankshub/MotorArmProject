@@ -25,11 +25,12 @@ class PendulumGUI:
                 show a single pendulum arm instead
             bool live - set True if gui will be used for live playback
         """
+        # Set public members
         self.double_pend = double_pend
         self.live = live
 
-        #Should gui die
-        self._death = False
+        # Set private member
+        self._death = False #Flag to kill gui during live playback
 
         pygame.init()
         # Build Scenery

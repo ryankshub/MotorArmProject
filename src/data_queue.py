@@ -8,7 +8,6 @@ File for DataQueue Class
 # Python Import
 from collections import deque
 import itertools
-import warnings
 
 # 3rd-party import
 import numpy as np
@@ -31,10 +30,11 @@ class DataQueue():
                 and organized from oldest to newest entry. If data is too 
                 large, only the latest 'time_limit_s' duration will be saved
         """
+        # Set private members
         # Set constants
         self._RATE_HZ = data_rate_Hz
 
-        # Set 'private' members
+        # Set private variables
         self._time_limit = time_window_s
 
         self._size = int(np.ceil( time_window_s / (1 / self._RATE_HZ) ))
@@ -43,10 +43,7 @@ class DataQueue():
         else:
             self._queue = deque([], maxlen=self._size)
 
-
-
-    # Class member properties
-
+    # DataQueue properties
     @property
     def RATE_HZ(self):
         """
@@ -76,32 +73,16 @@ class DataQueue():
         """
         self._change_limit(value)
 
-    # Queue Modifiers
 
-    def append(self, mag_val):
-        """
-        Append new entry to queue
-        """
-        self._queue.append(mag_val)
-
-
-    def append_xyz(self, x, y, z):
-        """
-        Append the magnitude of X, Y, and Z component of new entry
-
-        Args:
-            float x
-        """
-        mag = np.sqrt( np.sum( np.power([x, y, z], 2) ) )
-        self._queue.append(mag)
-
-
+    # DataQueue private fcns
     def _change_limit(self, value):
         """
-        Change the time limit 
+        Change the time limit. If the current amount of data exceeds the new 
+        time limit, only the latest that fit in the new duration will be 
+        preserved
 
-        If the current amount of data exceeds the new time limit, only the
-        latest that fit in the new duration will be preserved
+        Args:
+            num value - new time limit (in seconds)
         """
         self._size = int(np.ceil( value / (1 / self._RATE_HZ) ))
         self._queue = deque( self._queue, maxlen=self._size)
@@ -119,6 +100,22 @@ class DataQueue():
             return self._size
         else:
             return int(self._size*frac)
+
+
+    # DataQueue public fcns
+    def append(self, mag_val):
+        """
+        Append new entry to queue
+        """
+        self._queue.append(mag_val)
+
+
+    def append_xyz(self, x, y, z):
+        """
+        Append the magnitude of X, Y, and Z component of new entry
+        """
+        mag = np.sqrt( np.sum( np.power([x, y, z], 2) ) )
+        self._queue.append(mag)
 
 
     def clear(self):

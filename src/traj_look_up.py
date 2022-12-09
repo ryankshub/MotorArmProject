@@ -11,8 +11,8 @@ import pandas as pd
 
 class TrajectoryLookUp():
     """
-    A look-up table to determine the position set-point by referencing gait profiles of
-    different speed
+    A look-up table to determine the position set-point by referencing gait 
+    profiles of different speed
     """
     def __init__(self, profiles, init_angle=0.0, EPSILON=0.01):
         """
@@ -20,8 +20,8 @@ class TrajectoryLookUp():
 
         Args:
             dict(float -> filepath) profiles -
-                A dictionary of speeds(in m/s) to filepaths containing the arm swing trajectories for
-                those trajectories
+                A dictionary of speeds(in m/s) to filepaths containing the arm 
+                swing trajectories for those trajectories
 
             float init_angle - defaults to 0.0
                 The initial angle of the arm(in rev). 0.0 points downward 
@@ -55,13 +55,23 @@ class TrajectoryLookUp():
         self._fast_incre = 0
 
 
+    # TrajLookUp properties
     @property
     def angle(self):
+        """
+        Return current value of elbow angle in revolutions
+        """
         return self._angle
 
 
     @angle.setter
     def angle(self, value):
+        """
+        Update elbow angle and past elbow angle
+
+        Args:
+            num value - new elbow angle (in revolutions)
+        """
         self._past_angle = self._angle
         # Mod value to keep it between -0.5 and 0.5
         self._angle = value % 1
@@ -71,19 +81,42 @@ class TrajectoryLookUp():
     @property
     def sh_angle(self):
         """
-        Return current shoulder angle (in revolutions)
-        NOTE: only update if double pendulum is true
+        This property is added for consistency across trajectory generating 
+        objects. TrajLookUp does not support a shoulder angle, always return 
+        None
         """
         return None
 
     @sh_angle.setter
     def sh_angle(self, value):
         """
-        Update current shoulder angle value (in revolutions)
-
-        Modify the angle to keep it in range (-.5, .5]
+        This property is added for consistency across trajectory generating
+        objects. TrajLookUp does not support a shoulder angle, always ignore
+        new value
         """
         pass
+
+    
+    # TrajLookUp private fcns
+    def _blend_traj(self, slow_speed, fast_speed, curr_speed,
+         slow_idx, fast_idx):
+        """
+        Blend two trajectory position set points into one
+
+        Args:
+            slow_speed: slower of the two trajectories
+            fast_speed: faster of the two trajectories
+            curr_speed: current walking speed
+            slow_idx: current idx of the slow traj
+            fast_idx: current idx of the fast traj
+
+        Rtn:
+            blended trajectory positions
+        """
+        alpha = (fast_speed - curr_speed)/(fast_speed - slow_speed)
+        slow_value = self._position_profiles[slow_speed][slow_idx]
+        fast_value = self._position_profiles[fast_speed][fast_idx]
+        return alpha*slow_value + (1-alpha)*fast_value
 
 
     def _conv_step_speed(self, steps, time_window):
@@ -164,27 +197,7 @@ class TrajectoryLookUp():
             return (min_idx, -1)
 
 
-    def _blend_traj(self, slow_speed, fast_speed, curr_speed,
-         slow_idx, fast_idx):
-        """
-        Blend two trajectory position set points into one
-
-        Args:
-            slow_speed: slower of the two trajectories
-            fast_speed: faster of the two trajectories
-            curr_speed: current walking speed
-            slow_idx: current idx of the slow traj
-            fast_idx: current idx of the fast traj
-
-        Rtn:
-            blended trajectory positions
-        """
-        alpha = (fast_speed - curr_speed)/(fast_speed - slow_speed)
-        slow_value = self._position_profiles[slow_speed][slow_idx]
-        fast_value = self._position_profiles[fast_speed][fast_idx]
-        return alpha*slow_value + (1-alpha)*fast_value
-    
-
+    # TrajLookUp public fcns
     def get_pos_setpoint(self, steps, time_window, time_till_step=None):
         """
         Calcuate the new position setpoint given the current
@@ -193,7 +206,8 @@ class TrajectoryLookUp():
         Args:
             float steps - factional number of steps taken 
                 (This is not an integer because it represents an average rate)
-            float time_window - how long the steps rate was measured over (in seconds)
+            float time_window - how long the steps rate was measured over 
+                (in seconds)
 
         Rtn:
             The desired position angle(in revolutions) of the arm 
@@ -216,11 +230,14 @@ class TrajectoryLookUp():
         if (abs(self._curr_speed - est_speed) > 3*self._EPSILON):
             # Calculate new slow/fast speed
             self._curr_speed = est_speed
-            self._slow_speed, self._fast_speed = self._get_walk_speeds(self._curr_speed)
-            self._fast_index, self._fast_incre = self._search_trajs(self._fast_speed)
+            self._slow_speed, self._fast_speed = \
+                self._get_walk_speeds(self._curr_speed)
+            self._fast_index, self._fast_incre = \
+                self._search_trajs(self._fast_speed)
 
             if self._slow_speed:
-                self._slow_index, self._slow_incre = self._search_trajs(self._slow_speed)
+                self._slow_index, self._slow_incre = \
+                    self._search_trajs(self._slow_speed)
             else:
                 self._slow_index = None
 
@@ -228,16 +245,24 @@ class TrajectoryLookUp():
         rtn_setpoint = 0.0
         if self._slow_speed:
             #Update index
-            self._slow_index = (self._slow_index + self._slow_incre) % len(self._position_profiles[self._slow_speed])
-            self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
+            self._slow_index = (self._slow_index + self._slow_incre) % \
+                len(self._position_profiles[self._slow_speed])
+            self._fast_index = (self._fast_index + self._fast_incre) % \
+                len(self._position_profiles[self._fast_speed])
+                
             #Update setpoint
-            rtn_setpoint = self._blend_traj(self._slow_speed, self._fast_speed, self._curr_speed,
-                self._slow_index, self._fast_index)
+            rtn_setpoint = self._blend_traj(self._slow_speed, 
+                                            self._fast_speed, 
+                                            self._curr_speed,
+                                            self._slow_index, 
+                                            self._fast_index)
 
         else:
             #Update index
-            self._fast_index = (self._fast_index + self._fast_incre) % len(self._position_profiles[self._fast_speed])
+            self._fast_index = (self._fast_index + self._fast_incre) % \
+                len(self._position_profiles[self._fast_speed])
             #Update setpoint
-            rtn_setpoint = self._position_profiles[self._fast_speed][self._fast_index]
+            rtn_setpoint = \
+                self._position_profiles[self._fast_speed][self._fast_index]
 
         return rtn_setpoint, None
