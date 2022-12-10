@@ -8,7 +8,7 @@ the patient is performing. Further, if the patient is walking, ground reaction
 forces captured by the IMU will imply a step cadence. Finally, a trajectory is
 crafted such that the apex of the arm swing matches the step cadence.
 
-*IMG of entire pipeline*
+![High-Level System Architecture](docs/Images/cts_high_level_system.png)
 
 There are five major software modules used for this process. The IMU interface
 device responsible for capturing acceleration on the patient's elbow. A 
@@ -45,6 +45,11 @@ and show the arm live on the graphical interface.
 The `modelfile` argument is a filepath to the classifier that should be used
 during execution. There are some defaults in the `models` directory. Refer to 
 the [classifier training](#training-a-classifier) section for more detail.
+
+Below is an example of running the program with a binary classifier using the 
+IMU
+
+`./run_sil.py -p -d /dev/ttyACM0 models/RKS_FINAL_BIN.joblib`
 
 ## Setup
 
@@ -138,7 +143,7 @@ The graphical interface showcases the current state, step, and motions of the
 arm. The arm is either represented as a double pendulum showcasing the shoulder 
 and elbow motions or a single pendulum focused solely on the elbow
 
-*Img of GUI*
+![Gui screenshot](docs/Images/GUI.png)
 
 
 ## IMU Interface code
@@ -166,7 +171,7 @@ protocol is used to grab bytes representing acceleration and gyroscope readings
 for the code to convert to 16-bit floats. Below is the circuit used for 
 connection:
 
-*Img of circuit*
+![IMU Circuit](docs/Images/cts_IMU_circuit.png)
 
 In the `pico-code/include` directory is the header file `i2c_m050_imu.h` that
 contains several configuration values for the I2C connection. Many of these
